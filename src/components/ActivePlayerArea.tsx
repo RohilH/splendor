@@ -154,8 +154,10 @@ const CardSummary = ({ card, onClick }: CardSummaryProps) => {
 
 export const ActivePlayerArea = () => {
   const { players, currentPlayer } = useGameStore();
-  const endTurn = useGameStore((state) => state.endTurn);
   const takeGems = useGameStore((state) => state.takeGems);
+  const assignNoblesAndEndTurn = useGameStore(
+    (state) => state.assignNoblesAndEndTurn
+  );
   const purchaseReservedCard = useGameStore(
     (state) => state.purchaseReservedCard
   );
@@ -181,10 +183,10 @@ export const ActivePlayerArea = () => {
       const success = takeGems(selectedGems);
       if (success) {
         clearGems();
-        endTurn();
+        assignNoblesAndEndTurn();
       }
     } else {
-      endTurn();
+      assignNoblesAndEndTurn();
     }
   };
 
@@ -197,7 +199,7 @@ export const ActivePlayerArea = () => {
   const handleReservedCardClick = (card: Card, index: number) => {
     const success = purchaseReservedCard(index);
     if (success) {
-      endTurn();
+      handleEndTurn();
     }
   };
 

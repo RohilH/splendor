@@ -1,5 +1,6 @@
 import { Box, HStack, Text, VStack, SimpleGrid } from "@chakra-ui/react";
 import { Player, GemType } from "../types/game";
+import { useGameStore } from "../store/gameStore";
 
 interface PlayerAreaProps {
   player: Player;
@@ -17,10 +18,8 @@ const bankGemColors: Record<GemType, { bg: string; border: string }> = {
 };
 
 export const PlayerArea = ({ player, isActive }: PlayerAreaProps) => {
-  const totalPoints = player.purchasedCards.reduce(
-    (sum, card) => sum + (card.points || 0),
-    0
-  );
+  const calculatePoints = useGameStore((state) => state.calculatePoints);
+  const totalPoints = calculatePoints(player);
   const gemBonuses = (
     ["diamond", "sapphire", "emerald", "ruby", "onyx"] as const
   ).reduce((acc, gem) => {

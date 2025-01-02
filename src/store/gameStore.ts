@@ -42,6 +42,11 @@ const shuffleArray = <T>(array: T[]): T[] => {
   return newArray;
 };
 
+const calculatePlayerPoints = (player: Player): number => {
+  return player.purchasedCards.reduce((sum, card) => sum + (card.points || 0), 0) +
+    player.nobles.reduce((sum, noble) => sum + noble.points, 0);
+};
+
 interface GameStore extends GameState {
   initializeGame: (numPlayers: number, playerNames: string[], debugMode?: boolean) => void;
   takeGems: (gems: Partial<Record<GemType, number>>) => boolean;
@@ -51,10 +56,15 @@ interface GameStore extends GameState {
   returnGems: (gems: Partial<Record<GemType, number>>) => void;
   checkNobles: () => Noble[];
   selectNoble: (noble: Noble) => void;
-  endTurn: () => void;
+  assignNoblesAndEndTurn: () => void;
   isGameOver: boolean;
   winner: number | null;
   debugMode: boolean;
+  availableNobles: Noble[];
+  showNobleSelection: boolean;
+  closeNobleSelection: () => void;
+  calculatePoints: (player: Player) => number;
+  completeEndTurn: () => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => {
@@ -155,6 +165,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     isGameOver: false,
     winner: null,
     debugMode: false,
+    availableNobles: [],
+    showNobleSelection: false,
 
     initializeGame: (numPlayers: number, playerNames: string[], debugMode = false) => {
       const shuffledLevel1 = shuffleArray(level1Cards);
@@ -162,9 +174,9 @@ export const useGameStore = create<GameStore>((set, get) => {
       const shuffledLevel3 = shuffleArray(level3Cards);
       const shuffledNobles = shuffleArray(nobles).slice(0, numPlayers + 1);
 
-      const players: Player[] = Array.from({ length: numPlayers }, (_, i) => ({
-        id: i,
-        name: playerNames[i],
+      const players: Player[] = Array.from({ length: numPlayers }, (_, index) => ({
+        id: index,
+        name: playerNames[index],
         gems: { diamond: 0, sapphire: 0, emerald: 0, ruby: 0, onyx: 0, gold: 0 },
         reservedCards: [],
         purchasedCards: [],
@@ -401,9 +413,11 @@ export const useGameStore = create<GameStore>((set, get) => {
       const { players, currentPlayer, nobles } = get();
       const player = players[currentPlayer];
 
-      const updatedPlayers = [...players];
+      // Only remove the selected noble
       const updatedNobles = nobles.filter(n => n !== noble);
       
+      // Update player with the selected noble
+      const updatedPlayers = [...players];
       updatedPlayers[currentPlayer] = {
         ...player,
         nobles: [...player.nobles, noble],
@@ -412,31 +426,41 @@ export const useGameStore = create<GameStore>((set, get) => {
       set({
         players: updatedPlayers,
         nobles: updatedNobles,
+        showNobleSelection: false,
+        availableNobles: [],
       });
+
+      // Complete the turn after noble selection
+      get().completeEndTurn();
     },
 
-    endTurn: () => {
-      const { players, currentPlayer } = get();
-      const nextPlayer = (currentPlayer + 1) % players.length;
-      
+    assignNoblesAndEndTurn: () => {
       // Check for nobles before ending turn
       const availableNobles = get().checkNobles();
       if (availableNobles.length === 1) {
         // If only one noble is available, automatically select it
         get().selectNoble(availableNobles[0]);
+        get().completeEndTurn();
       } else if (availableNobles.length > 1) {
-        // TODO: Add UI for noble selection when multiple are available
-        // For now, select the first available noble
-        get().selectNoble(availableNobles[0]);
+        // Show noble selection modal
+        set({ availableNobles, showNobleSelection: true });
+        // completeEndTurn will be called after noble selection
+      } else {
+        // No nobles available, complete turn
+        get().completeEndTurn();
       }
+    },
+
+    completeEndTurn: () => {
+      const { players, currentPlayer } = get();
+      const nextPlayer = (currentPlayer + 1) % players.length;
 
       // If we're completing a round (going back to player 0)
       if (nextPlayer === 0) {
         // Check if any player has reached 15 points
         const playerPoints = players.map((player, index) => ({
           index,
-          points: player.purchasedCards.reduce((sum, c) => sum + c.points, 0) +
-            player.nobles.reduce((sum, n) => sum + n.points, 0)
+          points: calculatePlayerPoints(player)
         }));
 
         const maxPoints = Math.max(...playerPoints.map(p => p.points));
@@ -457,5 +481,11 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       set({ currentPlayer: nextPlayer });
     },
+
+    closeNobleSelection: () => {
+      set({ showNobleSelection: false, availableNobles: [] });
+    },
+
+    calculatePoints: calculatePlayerPoints,
   };
 }); 

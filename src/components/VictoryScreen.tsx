@@ -10,6 +10,7 @@ interface VictoryScreenProps {
 export const VictoryScreen = ({ onRestart }: VictoryScreenProps) => {
   const players = useGameStore((state) => state.players);
   const winner = useGameStore((state) => state.winner);
+  const calculatePoints = useGameStore((state) => state.calculatePoints);
 
   const fireConfetti = useCallback(() => {
     const duration = 5000;
@@ -64,9 +65,7 @@ export const VictoryScreen = ({ onRestart }: VictoryScreenProps) => {
   if (winner === null) return null;
 
   const winningPlayer = players[winner];
-  const totalPoints =
-    winningPlayer.purchasedCards.reduce((sum, c) => sum + c.points, 0) +
-    winningPlayer.nobles.reduce((sum, n) => sum + n.points, 0);
+  const totalPoints = calculatePoints(winningPlayer);
 
   return (
     <Box

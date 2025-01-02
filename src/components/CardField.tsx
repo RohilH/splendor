@@ -11,7 +11,9 @@ export const CardField = ({ level }: CardFieldProps) => {
   const { visibleCards, currentPlayer, players } = useGameStore();
   const purchaseCard = useGameStore((state) => state.purchaseCard);
   const reserveCard = useGameStore((state) => state.reserveCard);
-  const endTurn = useGameStore((state) => state.endTurn);
+  const assignNoblesAndEndTurn = useGameStore(
+    (state) => state.assignNoblesAndEndTurn
+  );
 
   const cards = visibleCards[`level${level}`];
   const player = players[currentPlayer];
@@ -174,7 +176,7 @@ export const CardField = ({ level }: CardFieldProps) => {
               isDisabled={!canAffordCard(card)}
               onClick={() => {
                 const success = purchaseCard(card, level);
-                if (success) endTurn();
+                if (success) assignNoblesAndEndTurn();
               }}
             >
               {canAffordCard(card) ? "Purchase" : "Can't Afford"}
@@ -186,7 +188,7 @@ export const CardField = ({ level }: CardFieldProps) => {
               isDisabled={!canReserveCard()}
               onClick={() => {
                 const success = reserveCard(card, level);
-                if (success) endTurn();
+                if (success) assignNoblesAndEndTurn();
               }}
             >
               {canReserveCard() ? "Reserve" : "Reserve Full"}

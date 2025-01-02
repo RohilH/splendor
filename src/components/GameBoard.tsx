@@ -5,9 +5,13 @@ import { CardField } from "./CardField";
 import { PlayerArea } from "./PlayerArea";
 import { NobleArea } from "./NobleArea";
 import { ActivePlayerArea } from "./ActivePlayerArea";
+import { NobleSelectionModal } from "./NobleSelectionModal";
 
 export const GameBoard = () => {
   const { players, currentPlayer } = useGameStore();
+  const showNobleSelection = useGameStore((state) => state.showNobleSelection);
+  const availableNobles = useGameStore((state) => state.availableNobles);
+  const selectNoble = useGameStore((state) => state.selectNoble);
 
   return (
     <Box p={4} pb={48} bg="gray.100" minH="100vh">
@@ -35,6 +39,12 @@ export const GameBoard = () => {
       </Grid>
 
       <ActivePlayerArea />
+
+      <NobleSelectionModal
+        isOpen={showNobleSelection}
+        nobles={availableNobles}
+        onSelect={selectNoble}
+      />
     </Box>
   );
 };
