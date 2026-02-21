@@ -49,6 +49,24 @@ On your turn, you can perform one of these actions:
 
 The game ends when a player reaches 15 prestige points. Complete the current round so all players have the same number of turns.
 
+## Testing
+
+Run unit tests (Vitest):
+```bash
+npm test
+```
+
+Run unit tests in watch mode:
+```bash
+npm run test:watch
+```
+
+Run E2E tests (Puppeteer — requires the dev server to be running):
+```bash
+npm run dev &
+node e2e.test.mjs
+```
+
 ## Development
 
 This project uses:

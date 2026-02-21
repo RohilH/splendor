@@ -1,115 +1,145 @@
 import { Card, Noble, GemType } from '../types/game';
 
-const GEMS: Exclude<GemType, 'gold'>[] = ['diamond', 'sapphire', 'emerald', 'ruby', 'onyx'];
+type Gem = Exclude<GemType, 'gold'>;
 
-function generateCards(level: 1 | 2 | 3, count: number): Card[] {
-  const cards: Card[] = [];
-  
-  // Card generation rules per level
-  const rules = {
-    1: {
-      pointRange: [0, 1],
-      maxCost: 5,
-      minCost: 3,
-      maxSingleGemCost: 3,
-    },
-    2: {
-      pointRange: [1, 3],
-      maxCost: 7,
-      minCost: 5,
-      maxSingleGemCost: 5,
-    },
-    3: {
-      pointRange: [3, 5],
-      maxCost: 10,
-      minCost: 7,
-      maxSingleGemCost: 7,
-    },
-  };
-
-  for (let i = 0; i < count; i++) {
-    const rule = rules[level];
-    const points = Math.floor(Math.random() * (rule.pointRange[1] - rule.pointRange[0] + 1)) + rule.pointRange[0];
-    const gem = GEMS[Math.floor(Math.random() * GEMS.length)];
-    
-    // Generate cost
-    const cost: Partial<Record<Exclude<GemType, 'gold'>, number>> = {};
-    const totalCost = Math.floor(Math.random() * (rule.maxCost - rule.minCost + 1)) + rule.minCost;
-    let remainingCost = totalCost;
-    
-    // Randomly distribute cost among gems
-    const availableGems = [...GEMS].filter(g => g !== gem); // Can't cost its own gem type
-    while (remainingCost > 0 && availableGems.length > 0) {
-      const gemIndex = Math.floor(Math.random() * availableGems.length);
-      const selectedGem = availableGems[gemIndex];
-      const maxCost = Math.min(remainingCost, rule.maxSingleGemCost);
-      const gemCost = Math.floor(Math.random() * maxCost) + 1;
-      
-      cost[selectedGem] = gemCost;
-      remainingCost -= gemCost;
-      availableGems.splice(gemIndex, 1);
-    }
-
-    // If there's remaining cost, distribute it randomly among existing costs
-    while (remainingCost > 0) {
-      const existingGems = Object.keys(cost) as Exclude<GemType, 'gold'>[];
-      const selectedGem = existingGems[Math.floor(Math.random() * existingGems.length)];
-      const currentCost = cost[selectedGem] || 0;
-      if (currentCost < rule.maxSingleGemCost) {
-        cost[selectedGem] = currentCost + 1;
-        remainingCost--;
-      }
-    }
-
-    cards.push({
-      level,
-      points,
-      gem,
-      cost,
-    });
-  }
-
-  return cards;
+function card(level: 1 | 2 | 3, gem: Gem, points: number, onyx: number, sapphire: number, emerald: number, ruby: number, diamond: number): Card {
+  const cost: Partial<Record<Gem, number>> = {};
+  if (onyx) cost.onyx = onyx;
+  if (sapphire) cost.sapphire = sapphire;
+  if (emerald) cost.emerald = emerald;
+  if (ruby) cost.ruby = ruby;
+  if (diamond) cost.diamond = diamond;
+  return { level, gem, points, cost };
 }
 
-function generateNobles(count: number): Noble[] {
-  const nobles: Noble[] = [];
-  const usedCombinations = new Set<string>();
-  
-  while (nobles.length < count) {
-    const requirements: Partial<Record<Exclude<GemType, 'gold'>, number>> = {};
-    const requiredGemCount = Math.random() < 0.5 ? 3 : 2; // Either 2 or 3 different gems
-    const requiredAmount = requiredGemCount === 2 ? 4 : 3; // 4 each for 2 gems, 3 each for 3 gems
-    
-    // Randomly select gems
-    const selectedGems = [...GEMS]
-      .sort(() => Math.random() - 0.5)
-      .slice(0, requiredGemCount);
-    
-    selectedGems.forEach(gem => {
-      requirements[gem] = requiredAmount;
-    });
+// Official Splendor card data
+// Source: https://github.com/bouk/splendimax/blob/master/Splendor%20Cards.csv
+// CSV columns: Level, Color, PV, Black, Blue, Green, Red, White
 
-    // Create a string key to check for uniqueness
-    const combinationKey = Object.entries(requirements)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([gem, count]) => `${gem}:${count}`)
-      .join(',');
+export const level1Cards: Card[] = [
+  // Onyx (Black)
+  card(1, 'onyx', 0, 0, 1, 1, 1, 1),
+  card(1, 'onyx', 0, 0, 2, 1, 1, 1),
+  card(1, 'onyx', 0, 0, 2, 0, 1, 2),
+  card(1, 'onyx', 0, 1, 0, 1, 3, 0),
+  card(1, 'onyx', 0, 0, 0, 2, 1, 0),
+  card(1, 'onyx', 0, 0, 0, 2, 0, 2),
+  card(1, 'onyx', 0, 0, 0, 3, 0, 0),
+  card(1, 'onyx', 1, 0, 4, 0, 0, 0),
+  // Sapphire (Blue)
+  card(1, 'sapphire', 0, 1, 0, 1, 1, 1),
+  card(1, 'sapphire', 0, 1, 0, 1, 2, 1),
+  card(1, 'sapphire', 0, 0, 0, 2, 2, 1),
+  card(1, 'sapphire', 0, 0, 1, 3, 1, 0),
+  card(1, 'sapphire', 0, 2, 0, 0, 0, 1),
+  card(1, 'sapphire', 0, 2, 0, 2, 0, 0),
+  card(1, 'sapphire', 0, 3, 0, 0, 0, 0),
+  card(1, 'sapphire', 1, 0, 0, 0, 4, 0),
+  // Diamond (White)
+  card(1, 'diamond', 0, 1, 1, 1, 1, 0),
+  card(1, 'diamond', 0, 1, 1, 2, 1, 0),
+  card(1, 'diamond', 0, 1, 2, 2, 0, 0),
+  card(1, 'diamond', 0, 1, 1, 0, 0, 3),
+  card(1, 'diamond', 0, 1, 0, 0, 2, 0),
+  card(1, 'diamond', 0, 2, 2, 0, 0, 0),
+  card(1, 'diamond', 0, 0, 3, 0, 0, 0),
+  card(1, 'diamond', 1, 0, 0, 4, 0, 0),
+  // Emerald (Green)
+  card(1, 'emerald', 0, 1, 1, 0, 1, 1),
+  card(1, 'emerald', 0, 2, 1, 0, 1, 1),
+  card(1, 'emerald', 0, 2, 1, 0, 2, 0),
+  card(1, 'emerald', 0, 0, 3, 1, 0, 1),
+  card(1, 'emerald', 0, 0, 1, 0, 0, 2),
+  card(1, 'emerald', 0, 0, 2, 0, 2, 0),
+  card(1, 'emerald', 0, 0, 0, 0, 3, 0),
+  card(1, 'emerald', 1, 4, 0, 0, 0, 0),
+  // Ruby (Red)
+  card(1, 'ruby', 0, 1, 1, 1, 0, 1),
+  card(1, 'ruby', 0, 1, 1, 1, 0, 2),
+  card(1, 'ruby', 0, 2, 0, 1, 0, 2),
+  card(1, 'ruby', 0, 3, 0, 0, 1, 1),
+  card(1, 'ruby', 0, 0, 2, 1, 0, 0),
+  card(1, 'ruby', 0, 0, 0, 0, 2, 2),
+  card(1, 'ruby', 0, 0, 0, 0, 0, 3),
+  card(1, 'ruby', 1, 0, 0, 0, 0, 4),
+];
 
-    if (!usedCombinations.has(combinationKey)) {
-      usedCombinations.add(combinationKey);
-      nobles.push({
-        points: 3,
-        requirements,
-      });
-    }
-  }
+export const level2Cards: Card[] = [
+  // Onyx (Black)
+  card(2, 'onyx', 1, 0, 2, 2, 0, 3),
+  card(2, 'onyx', 1, 2, 0, 3, 0, 3),
+  card(2, 'onyx', 2, 0, 1, 4, 2, 0),
+  card(2, 'onyx', 2, 0, 0, 5, 3, 0),
+  card(2, 'onyx', 2, 0, 0, 0, 0, 5),
+  card(2, 'onyx', 3, 6, 0, 0, 0, 0),
+  // Sapphire (Blue)
+  card(2, 'sapphire', 1, 0, 2, 2, 3, 0),
+  card(2, 'sapphire', 1, 3, 2, 3, 0, 0),
+  card(2, 'sapphire', 2, 0, 3, 0, 0, 5),
+  card(2, 'sapphire', 2, 4, 0, 0, 1, 2),
+  card(2, 'sapphire', 2, 0, 5, 0, 0, 0),
+  card(2, 'sapphire', 3, 0, 6, 0, 0, 0),
+  // Diamond (White)
+  card(2, 'diamond', 1, 2, 0, 3, 2, 0),
+  card(2, 'diamond', 1, 0, 3, 0, 3, 2),
+  card(2, 'diamond', 2, 2, 0, 1, 4, 0),
+  card(2, 'diamond', 2, 3, 0, 0, 5, 0),
+  card(2, 'diamond', 2, 0, 0, 0, 5, 0),
+  card(2, 'diamond', 3, 0, 0, 0, 0, 6),
+  // Emerald (Green)
+  card(2, 'emerald', 1, 0, 0, 2, 3, 3),
+  card(2, 'emerald', 1, 2, 3, 0, 0, 2),
+  card(2, 'emerald', 2, 1, 2, 0, 0, 4),
+  card(2, 'emerald', 2, 0, 5, 3, 0, 0),
+  card(2, 'emerald', 2, 0, 0, 5, 0, 0),
+  card(2, 'emerald', 3, 0, 0, 6, 0, 0),
+  // Ruby (Red)
+  card(2, 'ruby', 1, 3, 0, 0, 2, 2),
+  card(2, 'ruby', 1, 3, 3, 0, 2, 0),
+  card(2, 'ruby', 2, 0, 4, 2, 0, 1),
+  card(2, 'ruby', 2, 5, 0, 0, 0, 3),
+  card(2, 'ruby', 2, 5, 0, 0, 0, 0),
+  card(2, 'ruby', 3, 0, 0, 0, 6, 0),
+];
 
-  return nobles;
-}
+export const level3Cards: Card[] = [
+  // Onyx (Black)
+  card(3, 'onyx', 3, 0, 3, 5, 3, 3),
+  card(3, 'onyx', 4, 0, 0, 0, 7, 0),
+  card(3, 'onyx', 4, 3, 0, 3, 6, 0),
+  card(3, 'onyx', 5, 3, 0, 0, 7, 0),
+  // Sapphire (Blue)
+  card(3, 'sapphire', 3, 5, 0, 3, 3, 3),
+  card(3, 'sapphire', 4, 0, 0, 0, 0, 7),
+  card(3, 'sapphire', 4, 3, 3, 0, 0, 6),
+  card(3, 'sapphire', 5, 0, 3, 0, 0, 7),
+  // Diamond (White)
+  card(3, 'diamond', 3, 3, 3, 3, 5, 0),
+  card(3, 'diamond', 4, 7, 0, 0, 0, 0),
+  card(3, 'diamond', 4, 6, 0, 0, 3, 3),
+  card(3, 'diamond', 5, 7, 0, 0, 0, 3),
+  // Emerald (Green)
+  card(3, 'emerald', 3, 3, 3, 0, 3, 5),
+  card(3, 'emerald', 4, 0, 7, 0, 0, 0),
+  card(3, 'emerald', 4, 0, 6, 3, 0, 3),
+  card(3, 'emerald', 5, 0, 7, 3, 0, 0),
+  // Ruby (Red)
+  card(3, 'ruby', 3, 3, 5, 3, 0, 3),
+  card(3, 'ruby', 4, 0, 0, 7, 0, 0),
+  card(3, 'ruby', 4, 0, 3, 6, 3, 0),
+  card(3, 'ruby', 5, 0, 0, 7, 3, 0),
+];
 
-// Generate initial game data
-export const level1Cards = generateCards(1, 40); // More cards for level 1
-export const level2Cards = generateCards(2, 30);
-export const level3Cards = generateCards(3, 20);
-export const nobles = generateNobles(10); // Generate 10 nobles, game will select based on player count 
+// Official Splendor nobles (10 total)
+export const nobles: Noble[] = [
+  { points: 3, requirements: { onyx: 3, sapphire: 3, diamond: 3 } },
+  { points: 3, requirements: { emerald: 3, sapphire: 3, ruby: 3 } },
+  { points: 3, requirements: { emerald: 3, sapphire: 3, diamond: 3 } },
+  { points: 3, requirements: { onyx: 3, ruby: 3, diamond: 3 } },
+  { points: 3, requirements: { onyx: 3, emerald: 3, ruby: 3 } },
+  { points: 3, requirements: { diamond: 4, sapphire: 4 } },
+  { points: 3, requirements: { onyx: 4, diamond: 4 } },
+  { points: 3, requirements: { sapphire: 4, emerald: 4 } },
+  { points: 3, requirements: { onyx: 4, ruby: 4 } },
+  { points: 3, requirements: { emerald: 4, ruby: 4 } },
+];
