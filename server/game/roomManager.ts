@@ -4,6 +4,7 @@ import type { RoomState, OnlineGameAction } from "../../shared/onlineTypes";
 import type { ServerToClientMessage } from "../../shared/protocol/wsMessages";
 import { applyGameAction, createInitialGameState, toPublicGameState } from "./engine";
 import type { GameServerState } from "./engine";
+import { ReconnectManager } from "./reconnectManager";
 
 interface SessionUser {
   id: string;
@@ -18,7 +19,6 @@ interface Room {
   processedActionIdsByUser: Map<string, string[]>;
   createdAt: number;
   updatedAt: number;
-  emptySince: number | null;
 }
 
 interface RoomManagerOptions {
@@ -47,9 +47,14 @@ export class RoomManager {
   private readonly socketsByUser = new Map<string, Set<WebSocket>>();
   private readonly options: RoomManagerOptions;
   private readonly cleanupInterval: NodeJS.Timeout;
+  private readonly reconnectManager: ReconnectManager;
 
   public constructor(options?: Partial<RoomManagerOptions>) {
     this.options = { ...defaultOptions, ...options };
+    this.reconnectManager = new ReconnectManager({
+      reconnectGraceMs: this.options.reconnectGraceMs,
+      idleRoomTtlMs: this.options.idleRoomTtlMs,
+    });
     this.cleanupInterval = setInterval(() => {
       this.runCleanup();
     }, this.options.cleanupIntervalMs);
@@ -103,7 +108,6 @@ export class RoomManager {
       processedActionIdsByUser: new Map<string, string[]>(),
       createdAt: now,
       updatedAt: now,
-      emptySince: null,
     };
 
     this.rooms.set(room.code, room);
@@ -292,18 +296,19 @@ export class RoomManager {
       );
 
       if (hasConnectedPlayers) {
-        room.emptySince = null;
+        this.reconnectManager.markRoomConnected(room.code);
         continue;
       }
 
-      room.emptySince ??= now;
+      this.reconnectManager.markRoomEmpty(room.code, now);
 
-      const ttlMs =
-        room.gameState && !room.gameState.isGameOver
-          ? this.options.reconnectGraceMs
-          : this.options.idleRoomTtlMs;
-
-      if (now - room.emptySince >= ttlMs) {
+      if (
+        this.reconnectManager.shouldExpireRoom(
+          room.code,
+          Boolean(room.gameState && !room.gameState.isGameOver),
+          now
+        )
+      ) {
         this.removeRoom(room.code);
       }
     }
@@ -324,7 +329,7 @@ export class RoomManager {
   private touchRoom(room: Room): void {
     room.updatedAt = Date.now();
     if (room.players.some((player) => this.isConnected(player.userId))) {
-      room.emptySince = null;
+      this.reconnectManager.markRoomConnected(room.code);
     }
   }
 
@@ -344,6 +349,7 @@ export class RoomManager {
     room.players.forEach((player) => {
       this.userRoom.delete(player.userId);
     });
+    this.reconnectManager.clearRoom(roomCode);
     this.rooms.delete(roomCode);
   }
 
