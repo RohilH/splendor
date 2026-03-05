@@ -118,7 +118,8 @@ export const attachWebSocketServer = (
               id: existingSession.userId,
               username: existingSession.username,
             },
-            parsedMessage.action
+            parsedMessage.action,
+            parsedMessage.actionId
           );
           break;
 

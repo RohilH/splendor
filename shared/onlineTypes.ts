@@ -99,7 +99,7 @@ export type ClientToServerMessage =
   | { type: "room:join"; roomCode: string }
   | { type: "room:leave" }
   | { type: "room:start" }
-  | { type: "game:action"; action: OnlineGameAction };
+  | { type: "game:action"; actionId?: string; action: OnlineGameAction };
 
 export type ServerToClientMessage =
   | {

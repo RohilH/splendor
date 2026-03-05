@@ -47,6 +47,7 @@ interface OnlineSessionStore {
 let activeSocket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let actionCounter = 0;
 
 const STORAGE_KEY = "splendor-online-session";
 const HEARTBEAT_INTERVAL_MS = 15000;
@@ -91,6 +92,14 @@ const sendOverSocket = (message: ClientToServerMessage): void => {
     return;
   }
   activeSocket.send(JSON.stringify(message));
+};
+
+const createActionId = (): string => {
+  actionCounter += 1;
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return `action-${Date.now()}-${actionCounter}`;
 };
 
 const stopHeartbeat = (): void => {
@@ -334,5 +343,10 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
 
   startGame: () => sendOverSocket({ type: "room:start" }),
 
-  sendGameAction: (action) => sendOverSocket({ type: "game:action", action }),
+  sendGameAction: (action) =>
+    sendOverSocket({
+      type: "game:action",
+      actionId: createActionId(),
+      action,
+    }),
 }));

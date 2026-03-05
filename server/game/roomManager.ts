@@ -14,6 +14,7 @@ interface Room {
   hostUserId: string;
   players: Array<{ userId: string; username: string }>;
   gameState: GameServerState | null;
+  processedActionIdsByUser: Map<string, string[]>;
   createdAt: number;
   updatedAt: number;
   emptySince: number | null;
@@ -26,6 +27,7 @@ interface RoomManagerOptions {
 }
 
 const createRoomCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
+const MAX_STORED_ACTION_IDS_PER_USER = 100;
 const defaultOptions: RoomManagerOptions = {
   cleanupIntervalMs: 30000,
   reconnectGraceMs: 15 * 60 * 1000,
@@ -97,6 +99,7 @@ export class RoomManager {
       hostUserId: user.id,
       players: [{ userId: user.id, username: user.username }],
       gameState: null,
+      processedActionIdsByUser: new Map<string, string[]>(),
       createdAt: now,
       updatedAt: now,
       emptySince: null,
@@ -226,10 +229,22 @@ export class RoomManager {
     this.broadcastGame(room);
   }
 
-  public handleGameAction(user: SessionUser, action: OnlineGameAction): void {
+  public handleGameAction(
+    user: SessionUser,
+    action: OnlineGameAction,
+    actionId?: string
+  ): void {
     const room = this.getUserRoom(user.id);
     if (!room || !room.gameState) {
       this.sendToUser(user.id, { type: "error", message: "No active game found." });
+      return;
+    }
+
+    if (actionId && this.isDuplicateActionId(room, user.id, actionId)) {
+      this.sendToUser(user.id, {
+        type: "game:state",
+        gameState: toPublicGameState(room.gameState),
+      });
       return;
     }
 
@@ -237,6 +252,10 @@ export class RoomManager {
     if (result.error) {
       this.sendToUser(user.id, { type: "error", message: result.error });
       return;
+    }
+
+    if (actionId) {
+      this.recordActionId(room, user.id, actionId);
     }
 
     room.gameState = result.state;
@@ -325,6 +344,25 @@ export class RoomManager {
       this.userRoom.delete(player.userId);
     });
     this.rooms.delete(roomCode);
+  }
+
+  private isDuplicateActionId(room: Room, userId: string, actionId: string): boolean {
+    const existing = room.processedActionIdsByUser.get(userId);
+    if (!existing) {
+      return false;
+    }
+    return existing.includes(actionId);
+  }
+
+  private recordActionId(room: Room, userId: string, actionId: string): void {
+    const existing = room.processedActionIdsByUser.get(userId) ?? [];
+    existing.push(actionId);
+
+    if (existing.length > MAX_STORED_ACTION_IDS_PER_USER) {
+      existing.splice(0, existing.length - MAX_STORED_ACTION_IDS_PER_USER);
+    }
+
+    room.processedActionIdsByUser.set(userId, existing);
   }
 
   private isConnected(userId: string): boolean {
