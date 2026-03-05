@@ -1,4 +1,5 @@
 import { level1Cards, level2Cards, level3Cards, nobles } from "../../src/data/gameData";
+import { calculatePlayerPoints } from "../../shared/game/selectors";
 import type {
   Card,
   GemType,
@@ -71,10 +72,6 @@ const shuffleArray = <T>(array: T[]): T[] => {
   }
   return shuffled;
 };
-
-const calculatePlayerPoints = (player: OnlinePlayer): number =>
-  player.purchasedCards.reduce((sum, card) => sum + (card.points || 0), 0) +
-  player.nobles.reduce((sum, noble) => sum + noble.points, 0);
 
 const cloneState = (state: GameServerState): GameServerState =>
   JSON.parse(JSON.stringify(state)) as GameServerState;

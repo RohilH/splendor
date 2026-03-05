@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { GameState, GemType, Card, Player, Gems, Noble } from '../types/game';
 import { level1Cards, level2Cards, level3Cards, nobles } from '../data/gameData';
+import { calculatePlayerPoints } from '../../shared/game/selectors';
 
 // Initial gem counts based on player count
 const INITIAL_GEMS_BY_PLAYER_COUNT: Record<number, Gems> = {
@@ -40,11 +41,6 @@ const shuffleArray = <T>(array: T[]): T[] => {
     [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
   }
   return newArray;
-};
-
-const calculatePlayerPoints = (player: Player): number => {
-  return player.purchasedCards.reduce((sum, card) => sum + (card.points || 0), 0) +
-    player.nobles.reduce((sum, noble) => sum + noble.points, 0);
 };
 
 interface GameStore extends GameState {

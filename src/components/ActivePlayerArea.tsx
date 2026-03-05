@@ -12,6 +12,7 @@ import {
 import { useGameStore } from "../store/gameStore";
 import { GemType, Card } from "../types/game";
 import { useTempGemStore } from "./GemBank";
+import { canAffordCard } from "../../shared/game/selectors";
 
 const gemImages: Record<GemType, string> = {
   diamond: "/gems/diamond.svg",
@@ -40,31 +41,7 @@ const CardSummary = ({ card, onClick }: CardSummaryProps) => {
   const { players, currentPlayer } = useGameStore();
   const player = players[currentPlayer];
 
-  // Check if player can afford the card
-  const canAfford = () => {
-    const totalGems = { ...player.gems };
-    // Add bonuses from purchased cards
-    player.purchasedCards.forEach((purchasedCard) => {
-      totalGems[purchasedCard.gem] = (totalGems[purchasedCard.gem] || 0) + 1;
-    });
-
-    // Check if player has enough gems
-    let goldNeeded = 0;
-    for (const [gem, cost] of Object.entries(card.cost)) {
-      const available = totalGems[gem as GemType] || 0;
-      const bonusGems = player.purchasedCards.filter(
-        (c) => c.gem === gem
-      ).length;
-      const required = Math.max(0, cost - bonusGems);
-      if (available >= required) {
-        totalGems[gem as GemType] -= required;
-      } else {
-        goldNeeded += required - available;
-        totalGems[gem as GemType] = 0;
-      }
-    }
-    return goldNeeded <= (totalGems.gold || 0);
-  };
+  const canAfford = () => canAffordCard(player, card, useGameStore.getState().debugMode);
 
   return (
     <Box position="relative">
