@@ -6,6 +6,7 @@ import type {
   RoomState,
   ServerToClientMessage,
 } from "../../shared/onlineTypes";
+import { WsClient } from "../network/wsClient";
 
 type ConnectionStatus =
   | "disconnected"
@@ -44,10 +45,10 @@ interface OnlineSessionStore {
   sendGameAction: (action: OnlineGameAction) => void;
 }
 
-let activeSocket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let actionCounter = 0;
+const wsClient = new WsClient();
 
 const STORAGE_KEY = "splendor-online-session";
 const HEARTBEAT_INTERVAL_MS = 15000;
@@ -88,10 +89,7 @@ const createApiClient = async <T>(
 };
 
 const sendOverSocket = (message: ClientToServerMessage): void => {
-  if (!activeSocket || activeSocket.readyState !== 1) {
-    return;
-  }
-  activeSocket.send(JSON.stringify(message));
+  wsClient.send(message);
 };
 
 const createActionId = (): string => {
@@ -124,10 +122,6 @@ type StoreSetter = (
 ) => void;
 
 const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void => {
-  if (activeSocket && (activeSocket.readyState === 0 || activeSocket.readyState === 1)) {
-    return;
-  }
-
   const token = get().token;
   if (!token) {
     return;
@@ -139,80 +133,76 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
   }
 
   set({ status: "connecting", error: null });
-  const socket = new WebSocket(getSocketUrl());
-  activeSocket = socket;
+  wsClient.setHandlers({
+    onOpen: () => {
+      set({ status: "connected" });
+      sendOverSocket({ type: "auth", token });
+    },
+    onMessage: (message: ServerToClientMessage) => {
+      switch (message.type) {
+        case "auth:ok":
+          set({
+            status: "authenticated",
+            user: message.user,
+            error: null,
+          });
+          persistSession(get().token, message.user);
+          startHeartbeat();
+          break;
 
-  socket.onopen = () => {
-    set({ status: "connected" });
-    sendOverSocket({ type: "auth", token });
-  };
+        case "auth:error":
+          set({
+            status: "disconnected",
+            error: message.message,
+            room: null,
+            gameState: null,
+          });
+          stopHeartbeat();
+          wsClient.disconnect();
+          break;
 
-  socket.onmessage = (event) => {
-    const message = JSON.parse(event.data) as ServerToClientMessage;
+        case "room:update":
+          set({
+            room: message.room,
+            gameState: message.room?.started ? get().gameState : null,
+          });
+          break;
 
-    switch (message.type) {
-      case "auth:ok":
-        set({
-          status: "authenticated",
-          user: message.user,
-          error: null,
-        });
-        persistSession(get().token, message.user);
-        startHeartbeat();
-        break;
+        case "game:state":
+          set({
+            gameState: message.gameState,
+          });
+          break;
 
-      case "auth:error":
-        set({
-          status: "disconnected",
-          error: message.message,
-          room: null,
-          gameState: null,
-        });
-        stopHeartbeat();
-        socket.close();
-        break;
+        case "info":
+          set({ info: message.message });
+          break;
 
-      case "room:update":
-        set({
-          room: message.room,
-          gameState: message.room?.started ? get().gameState : null,
-        });
-        break;
+        case "error":
+          set({ error: message.message });
+          break;
 
-      case "game:state":
-        set({
-          gameState: message.gameState,
-        });
-        break;
+        case "pong":
+          break;
 
-      case "info":
-        set({ info: message.message });
-        break;
+        default:
+          break;
+      }
+    },
+    onClose: () => {
+      const shouldReconnect = Boolean(get().token);
+      stopHeartbeat();
+      set({ status: "disconnected" });
 
-      case "error":
-        set({ error: message.message });
-        break;
+      if (shouldReconnect) {
+        reconnectTimer = setTimeout(() => {
+          connectSocket(set, get);
+        }, 1500);
+      }
+    },
+  });
 
-      case "pong":
-        break;
-
-      default:
-        break;
-    }
-  };
-
-  socket.onclose = () => {
-    activeSocket = null;
-    const shouldReconnect = Boolean(get().token);
-    stopHeartbeat();
-    set({ status: "disconnected" });
-
-    if (shouldReconnect) {
-      reconnectTimer = setTimeout(() => {
-        connectSocket(set, get);
-      }, 1500);
-    }
-  };
+  wsClient.connect(getSocketUrl());
 };
 
 const initialState: Omit<
@@ -320,10 +310,7 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
       reconnectTimer = null;
     }
 
-    if (activeSocket) {
-      activeSocket.close();
-      activeSocket = null;
-    }
+    wsClient.disconnect();
     stopHeartbeat();
 
     persistSession(null, null);
