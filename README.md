@@ -103,6 +103,18 @@ npm run dev &
 node e2e.test.mjs
 ```
 
+Run online multiplayer E2E (2 browser clients, auth + room + gameplay turn sync):
+```bash
+npm run dev &
+npm run test:online:e2e
+```
+
+Generate side-by-side demo video frames + MP4 artifact for online flow:
+```bash
+npm run dev &
+npm run demo:online:video
+```
+
 ## Authentication + Multiplayer Architecture
 
 - `POST /api/auth/register` — create account

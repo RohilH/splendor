@@ -13,6 +13,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:online:e2e": "node online.e2e.test.mjs",
+    "demo:online:video": "node capture-online-video-lite.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
