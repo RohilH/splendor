@@ -169,8 +169,17 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
           break;
 
         case "game:state":
-          set({
-            gameState: message.gameState,
+          set((state) => {
+            if (
+              state.gameState &&
+              message.gameState.stateVersion < state.gameState.stateVersion
+            ) {
+              return {};
+            }
+
+            return {
+              gameState: message.gameState,
+            };
           });
           break;
 
