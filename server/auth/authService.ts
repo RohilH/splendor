@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { nanoid } from "nanoid";
 import { UserStore } from "./userStore";
+import { getEnvConfig } from "../config/env";
 
 const JWT_EXPIRY = "14d";
 const MIN_PASSWORD_LENGTH = 6;
@@ -15,17 +16,9 @@ interface JwtPayload {
   userId: string;
 }
 
-const readJwtSecret = (): string => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    return "dev-only-secret-change-me";
-  }
-  return secret;
-};
-
 export class AuthService {
   private readonly userStore = new UserStore();
-  private readonly jwtSecret = readJwtSecret();
+  private readonly jwtSecret = getEnvConfig().jwtSecret;
 
   public async register(input: {
     username: string;

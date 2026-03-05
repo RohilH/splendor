@@ -14,9 +14,23 @@ interface Room {
   hostUserId: string;
   players: Array<{ userId: string; username: string }>;
   gameState: GameServerState | null;
+  createdAt: number;
+  updatedAt: number;
+  emptySince: number | null;
+}
+
+interface RoomManagerOptions {
+  cleanupIntervalMs: number;
+  reconnectGraceMs: number;
+  idleRoomTtlMs: number;
 }
 
 const createRoomCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
+const defaultOptions: RoomManagerOptions = {
+  cleanupIntervalMs: 30000,
+  reconnectGraceMs: 15 * 60 * 1000,
+  idleRoomTtlMs: 2 * 60 * 1000,
+};
 
 const safeSend = (socket: WebSocket, message: ServerToClientMessage): void => {
   if (socket.readyState === 1) {
@@ -28,11 +42,26 @@ export class RoomManager {
   private readonly rooms = new Map<string, Room>();
   private readonly userRoom = new Map<string, string>();
   private readonly socketsByUser = new Map<string, Set<WebSocket>>();
+  private readonly options: RoomManagerOptions;
+  private readonly cleanupInterval: NodeJS.Timeout;
+
+  public constructor(options?: Partial<RoomManagerOptions>) {
+    this.options = { ...defaultOptions, ...options };
+    this.cleanupInterval = setInterval(() => {
+      this.runCleanup();
+    }, this.options.cleanupIntervalMs);
+    this.cleanupInterval.unref?.();
+  }
+
+  public dispose(): void {
+    clearInterval(this.cleanupInterval);
+  }
 
   public addConnection(userId: string, socket: WebSocket): void {
     const socketSet = this.socketsByUser.get(userId) ?? new Set<WebSocket>();
     socketSet.add(socket);
     this.socketsByUser.set(userId, socketSet);
+    this.touchUserRoom(userId);
     this.broadcastUserRoom(userId);
   }
 
@@ -47,6 +76,7 @@ export class RoomManager {
       this.socketsByUser.delete(userId);
     }
 
+    this.touchUserRoom(userId);
     this.broadcastUserRoom(userId);
   }
 
@@ -61,11 +91,15 @@ export class RoomManager {
       roomCode = createRoomCode();
     }
 
+    const now = Date.now();
     const room: Room = {
       code: roomCode,
       hostUserId: user.id,
       players: [{ userId: user.id, username: user.username }],
       gameState: null,
+      createdAt: now,
+      updatedAt: now,
+      emptySince: null,
     };
 
     this.rooms.set(room.code, room);
@@ -94,6 +128,7 @@ export class RoomManager {
     const existingPlayer = room.players.find((player) => player.userId === user.id);
     if (existingPlayer) {
       this.userRoom.set(user.id, room.code);
+      this.touchRoom(room);
       this.broadcastRoom(room.code);
       if (room.gameState) {
         this.sendToUser(user.id, {
@@ -119,6 +154,7 @@ export class RoomManager {
 
     room.players.push({ userId: user.id, username: user.username });
     this.userRoom.set(user.id, room.code);
+    this.touchRoom(room);
     this.broadcastRoom(room.code);
   }
 
@@ -157,6 +193,7 @@ export class RoomManager {
       room.hostUserId = room.players[0].userId;
     }
 
+    this.touchRoom(room);
     this.broadcastRoom(room.code);
   }
 
@@ -184,6 +221,7 @@ export class RoomManager {
       room.players.map((player) => ({ userId: player.userId, name: player.username }))
     );
 
+    this.touchRoom(room);
     this.broadcastRoom(room.code);
     this.broadcastGame(room);
   }
@@ -202,6 +240,7 @@ export class RoomManager {
     }
 
     room.gameState = result.state;
+    this.touchRoom(room);
     this.broadcastGame(room);
     this.broadcastRoom(room.code);
   }
@@ -226,12 +265,66 @@ export class RoomManager {
     }
   }
 
+  public runCleanup(now = Date.now()): void {
+    for (const room of this.rooms.values()) {
+      const hasConnectedPlayers = room.players.some((player) =>
+        this.isConnected(player.userId)
+      );
+
+      if (hasConnectedPlayers) {
+        room.emptySince = null;
+        continue;
+      }
+
+      room.emptySince ??= now;
+
+      const ttlMs =
+        room.gameState && !room.gameState.isGameOver
+          ? this.options.reconnectGraceMs
+          : this.options.idleRoomTtlMs;
+
+      if (now - room.emptySince >= ttlMs) {
+        this.removeRoom(room.code);
+      }
+    }
+  }
+
+  public hasRoom(roomCode: string): boolean {
+    return this.rooms.has(roomCode);
+  }
+
   private getUserRoom(userId: string): Room | null {
     const roomCode = this.userRoom.get(userId);
     if (!roomCode) {
       return null;
     }
     return this.rooms.get(roomCode) ?? null;
+  }
+
+  private touchRoom(room: Room): void {
+    room.updatedAt = Date.now();
+    if (room.players.some((player) => this.isConnected(player.userId))) {
+      room.emptySince = null;
+    }
+  }
+
+  private touchUserRoom(userId: string): void {
+    const room = this.getUserRoom(userId);
+    if (!room) {
+      return;
+    }
+    this.touchRoom(room);
+  }
+
+  private removeRoom(roomCode: string): void {
+    const room = this.rooms.get(roomCode);
+    if (!room) {
+      return;
+    }
+    room.players.forEach((player) => {
+      this.userRoom.delete(player.userId);
+    });
+    this.rooms.delete(roomCode);
   }
 
   private isConnected(userId: string): boolean {

@@ -37,6 +37,11 @@ export const attachWebSocketServer = (
       const existingSession = socketSessions.get(socket);
 
       if (!existingSession) {
+        if (parsedMessage.type === "ping") {
+          safeSend(socket, { type: "pong", ts: parsedMessage.ts });
+          return;
+        }
+
         if (parsedMessage.type !== "auth") {
           safeSend(socket, {
             type: "auth:error",
@@ -70,6 +75,10 @@ export const attachWebSocketServer = (
             type: "error",
             message: "Socket is already authenticated.",
           });
+          break;
+
+        case "ping":
+          safeSend(socket, { type: "pong", ts: parsedMessage.ts });
           break;
 
         case "room:create":

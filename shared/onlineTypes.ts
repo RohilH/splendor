@@ -94,6 +94,7 @@ export type OnlineGameAction =
 
 export type ClientToServerMessage =
   | { type: "auth"; token: string }
+  | { type: "ping"; ts: number }
   | { type: "room:create" }
   | { type: "room:join"; roomCode: string }
   | { type: "room:leave" }
@@ -124,4 +125,8 @@ export type ServerToClientMessage =
   | {
       type: "error";
       message: string;
+    }
+  | {
+      type: "pong";
+      ts: number;
     };

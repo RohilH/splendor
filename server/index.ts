@@ -1,6 +1,7 @@
 import { createMultiplayerServer } from "./createServer";
+import { getEnvConfig } from "./config/env";
 
-const port = Number(process.env.PORT ?? 3001);
+const port = getEnvConfig().port;
 
 const { server } = createMultiplayerServer();
 

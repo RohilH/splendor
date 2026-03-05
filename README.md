@@ -121,6 +121,12 @@ Optional (recommended in production):
 
 - `PORT` (default: `3001`)
 - `JWT_SECRET` (default fallback exists for local dev only)
+- `WS_HEARTBEAT_INTERVAL_MS` (default: `15000`)
+- `STALE_ROOM_CLEANUP_INTERVAL_MS` (default: `30000`)
+- `RECONNECT_GRACE_MS` (default: `900000`, 15 minutes)
+- `IDLE_ROOM_TTL_MS` (default: `120000`, 2 minutes)
+
+You can copy `.env.example` and customize values for your deployment.
 
 Example:
 

@@ -46,8 +46,10 @@ interface OnlineSessionStore {
 
 let activeSocket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 const STORAGE_KEY = "splendor-online-session";
+const HEARTBEAT_INTERVAL_MS = 15000;
 
 const getSocketUrl = (): string => {
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -91,6 +93,21 @@ const sendOverSocket = (message: ClientToServerMessage): void => {
   activeSocket.send(JSON.stringify(message));
 };
 
+const stopHeartbeat = (): void => {
+  if (!heartbeatTimer) {
+    return;
+  }
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+};
+
+const startHeartbeat = (): void => {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    sendOverSocket({ type: "ping", ts: Date.now() });
+  }, HEARTBEAT_INTERVAL_MS);
+};
+
 type StoreSetter = (
   partial:
     | Partial<OnlineSessionStore>
@@ -132,6 +149,7 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
           error: null,
         });
         persistSession(get().token, message.user);
+        startHeartbeat();
         break;
 
       case "auth:error":
@@ -141,6 +159,7 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
           room: null,
           gameState: null,
         });
+        stopHeartbeat();
         socket.close();
         break;
 
@@ -165,6 +184,9 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
         set({ error: message.message });
         break;
 
+      case "pong":
+        break;
+
       default:
         break;
     }
@@ -173,6 +195,7 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
   socket.onclose = () => {
     activeSocket = null;
     const shouldReconnect = Boolean(get().token);
+    stopHeartbeat();
     set({ status: "disconnected" });
 
     if (shouldReconnect) {
@@ -292,6 +315,7 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
       activeSocket.close();
       activeSocket = null;
     }
+    stopHeartbeat();
 
     persistSession(null, null);
     set({

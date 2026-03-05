@@ -116,6 +116,13 @@ describe("multiplayer websocket integration", () => {
       waitForMessage(socketB, (message) => message.type === "auth:ok"),
     ]);
 
+    sendSocketMessage(socketA, { type: "ping", ts: Date.now() });
+    const pong = (await waitForMessage(
+      socketA,
+      (message) => message.type === "pong"
+    )) as Extract<ServerToClientMessage, { type: "pong" }>;
+    expect(pong.ts).toBeTypeOf("number");
+
     sendSocketMessage(socketA, { type: "room:create" });
     const roomUpdateA = (await waitForMessage(
       socketA,
@@ -183,5 +190,22 @@ describe("multiplayer websocket integration", () => {
     )) as Extract<ServerToClientMessage, { type: "game:state" }>;
 
     expect(postTurnStateA.gameState.currentPlayer).toBe(0);
+  });
+
+  it("rejects unauthenticated socket room actions", async () => {
+    serverInstance = createMultiplayerServer();
+    const port = await listen(serverInstance.server);
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    trackedSockets.push(socket);
+
+    await new Promise((resolve) => socket.once("open", resolve));
+    sendSocketMessage(socket, { type: "room:create" });
+
+    const authError = (await waitForMessage(
+      socket,
+      (message) => message.type === "auth:error"
+    )) as Extract<ServerToClientMessage, { type: "auth:error" }>;
+
+    expect(authError.message).toContain("Authenticate");
   });
 });
