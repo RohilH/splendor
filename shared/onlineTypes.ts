@@ -31,6 +31,7 @@ export interface OnlinePlayer {
 }
 
 export interface GamePublicState {
+  stateVersion: number;
   players: OnlinePlayer[];
   currentPlayer: number;
   gems: Gems;

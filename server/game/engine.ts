@@ -10,6 +10,7 @@ import type {
 } from "../../shared/onlineTypes";
 
 interface GameServerState {
+  stateVersion: number;
   players: OnlinePlayer[];
   currentPlayer: number;
   gems: Gems;
@@ -77,6 +78,13 @@ const calculatePlayerPoints = (player: OnlinePlayer): number =>
 
 const cloneState = (state: GameServerState): GameServerState =>
   JSON.parse(JSON.stringify(state)) as GameServerState;
+
+const finalizeActionState = (
+  state: GameServerState
+): { state: GameServerState } => {
+  state.stateVersion += 1;
+  return { state };
+};
 
 const getLevelKey = (level: 1 | 2 | 3): "level1" | "level2" | "level3" =>
   `level${level}` as "level1" | "level2" | "level3";
@@ -217,6 +225,7 @@ export const createInitialGameState = (
   }));
 
   return {
+    stateVersion: 0,
     players: gamePlayers,
     currentPlayer: 0,
     gems: INITIAL_GEMS_BY_PLAYER_COUNT[players.length],
@@ -286,7 +295,7 @@ export const applyGameAction = (
     state.nobles = state.nobles.filter((noble) => noble !== selectedNoble);
     completeEndTurn(state);
 
-    return { state };
+    return finalizeActionState(state);
   }
 
   if (state.currentPlayer !== actorPlayerIndex) {
@@ -358,7 +367,7 @@ export const applyGameAction = (
       }
 
       resolveNoblesAndTurn(state, actorPlayerIndex);
-      return { state };
+      return finalizeActionState(state);
     }
 
     case "purchase_card": {
@@ -380,7 +389,7 @@ export const applyGameAction = (
       }
 
       resolveNoblesAndTurn(state, actorPlayerIndex);
-      return { state };
+      return finalizeActionState(state);
     }
 
     case "reserve_card": {
@@ -415,7 +424,7 @@ export const applyGameAction = (
       }
 
       resolveNoblesAndTurn(state, actorPlayerIndex);
-      return { state };
+      return finalizeActionState(state);
     }
 
     case "purchase_reserved_card": {
@@ -434,12 +443,12 @@ export const applyGameAction = (
 
       player.reservedCards.splice(action.cardIndex, 1);
       resolveNoblesAndTurn(state, actorPlayerIndex);
-      return { state };
+      return finalizeActionState(state);
     }
 
     case "end_turn": {
       resolveNoblesAndTurn(state, actorPlayerIndex);
-      return { state };
+      return finalizeActionState(state);
     }
 
     case "select_noble":
@@ -454,6 +463,7 @@ export const applyGameAction = (
 };
 
 export const toPublicGameState = (state: GameServerState): GamePublicState => ({
+  stateVersion: state.stateVersion,
   players: state.players,
   currentPlayer: state.currentPlayer,
   gems: state.gems,

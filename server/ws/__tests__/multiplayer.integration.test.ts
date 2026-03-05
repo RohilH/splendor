@@ -152,10 +152,11 @@ describe("multiplayer websocket integration", () => {
     ]);
 
     sendSocketMessage(socketA, { type: "room:start" });
-    await Promise.all([
+    const [initialGameStateA] = (await Promise.all([
       waitForMessage(socketA, (message) => message.type === "game:state"),
       waitForMessage(socketB, (message) => message.type === "game:state"),
-    ]);
+    ])) as [Extract<ServerToClientMessage, { type: "game:state" }>, ServerToClientMessage];
+    expect(initialGameStateA.gameState.stateVersion).toBe(0);
 
     sendSocketMessage(socketA, {
       type: "game:action",
@@ -176,6 +177,7 @@ describe("multiplayer websocket integration", () => {
 
     expect(postMoveStateB.gameState.currentPlayer).toBe(1);
     expect(postMoveStateB.gameState.players[0].gems.diamond).toBe(1);
+    expect(postMoveStateB.gameState.stateVersion).toBe(1);
 
     sendSocketMessage(socketB, {
       type: "game:action",
@@ -192,6 +194,7 @@ describe("multiplayer websocket integration", () => {
     )) as Extract<ServerToClientMessage, { type: "game:state" }>;
 
     expect(postTurnStateA.gameState.currentPlayer).toBe(0);
+    expect(postTurnStateA.gameState.stateVersion).toBe(2);
   });
 
   it("rejects unauthenticated socket room actions", async () => {
@@ -348,6 +351,7 @@ describe("multiplayer websocket integration", () => {
     >;
 
     expect(gameAfterReconnect.gameState.currentPlayer).toBe(1);
+    expect(gameAfterReconnect.gameState.stateVersion).toBe(1);
   }, 20000);
 
   it("deduplicates repeated actionId submissions", async () => {
@@ -457,5 +461,6 @@ describe("multiplayer websocket integration", () => {
 
     expect(dedupeState.gameState.currentPlayer).toBe(1);
     expect(dedupeState.gameState.players[0].gems.diamond).toBe(1);
+    expect(dedupeState.gameState.stateVersion).toBe(1);
   });
 });
