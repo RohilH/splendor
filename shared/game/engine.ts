@@ -1,14 +1,11 @@
 import { level1Cards, level2Cards, level3Cards, nobles } from "../../src/data/gameData";
 import { calculatePlayerPoints } from "./selectors";
 import type {
-  Card,
-  GemType,
-  Gems,
-  Noble,
   OnlineGameAction,
   OnlinePlayer,
   GamePublicState,
 } from "../onlineTypes";
+import type { Card, GemType, Gems, Noble } from "../types/game";
 
 interface GameServerState {
   stateVersion: number;

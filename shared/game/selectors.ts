@@ -1,4 +1,4 @@
-import type { Card, GemType } from "../onlineTypes";
+import type { Card, GemType } from "../types/game";
 
 type PlayerResourceView = {
   gems: Record<GemType, number>;

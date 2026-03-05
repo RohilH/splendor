@@ -1,4 +1,4 @@
-import type { GemType } from "../onlineTypes";
+import type { GemType } from "../types/game";
 
 export type OnlineGameAction =
   | {
