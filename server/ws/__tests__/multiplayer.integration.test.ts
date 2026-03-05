@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { promises as fs } from "node:fs";
 import { WebSocket } from "ws";
 import type { AddressInfo } from "node:net";
 import { createMultiplayerServer } from "../../createServer";
@@ -59,6 +60,14 @@ const closeServer = (server: ReturnType<typeof createMultiplayerServer>["server"
 describe("multiplayer websocket integration", () => {
   const trackedSockets: WebSocket[] = [];
   let serverInstance: ReturnType<typeof createMultiplayerServer> | null = null;
+  let userStoreFilePath: string | null = null;
+
+  const useIsolatedUserStore = (): void => {
+    userStoreFilePath = `/tmp/splendor-users-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}.json`;
+    process.env.USER_STORE_FILE = userStoreFilePath;
+  };
 
   afterEach(async () => {
     trackedSockets.forEach((socket) => {
@@ -72,16 +81,23 @@ describe("multiplayer websocket integration", () => {
       await closeServer(serverInstance.server);
       serverInstance = null;
     }
+
+    if (userStoreFilePath) {
+      await fs.rm(userStoreFilePath, { force: true });
+      userStoreFilePath = null;
+    }
+    delete process.env.USER_STORE_FILE;
   });
 
   it("authenticates two users and synchronizes game actions in real-time", async () => {
+    useIsolatedUserStore();
     serverInstance = createMultiplayerServer();
     const port = await listen(serverInstance.server);
     const baseUrl = `http://127.0.0.1:${port}`;
 
     const userSuffix = Date.now();
     const register = async (username: string) => {
-      const response = await fetch(`${baseUrl}/api/auth/register`, {
+      const registerResponse = await fetch(`${baseUrl}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -89,8 +105,8 @@ describe("multiplayer websocket integration", () => {
           password: "password123",
         }),
       });
-      expect(response.status).toBe(201);
-      return (await response.json()) as {
+      expect(registerResponse.status).toBe(201);
+      return (await registerResponse.json()) as {
         token: string;
         user: { id: string; username: string };
       };
@@ -198,6 +214,7 @@ describe("multiplayer websocket integration", () => {
   });
 
   it("rejects unauthenticated socket room actions", async () => {
+    useIsolatedUserStore();
     serverInstance = createMultiplayerServer();
     const port = await listen(serverInstance.server);
     const socket = new WebSocket(`ws://127.0.0.1:${port}/ws`);
@@ -215,6 +232,7 @@ describe("multiplayer websocket integration", () => {
   });
 
   it("resynchronizes room and game state after reconnect", async () => {
+    useIsolatedUserStore();
     serverInstance = createMultiplayerServer();
     const port = await listen(serverInstance.server);
     const baseUrl = `http://127.0.0.1:${port}`;
@@ -355,6 +373,7 @@ describe("multiplayer websocket integration", () => {
   }, 20000);
 
   it("deduplicates repeated actionId submissions", async () => {
+    useIsolatedUserStore();
     serverInstance = createMultiplayerServer();
     const port = await listen(serverInstance.server);
     const baseUrl = `http://127.0.0.1:${port}`;
@@ -462,5 +481,79 @@ describe("multiplayer websocket integration", () => {
     expect(dedupeState.gameState.currentPlayer).toBe(1);
     expect(dedupeState.gameState.players[0].gems.diamond).toBe(1);
     expect(dedupeState.gameState.stateVersion).toBe(1);
+  });
+
+  it("rejects the fifth player joining a room", async () => {
+    useIsolatedUserStore();
+    serverInstance = createMultiplayerServer();
+    const port = await listen(serverInstance.server);
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    const register = async (username: string) => {
+      const response = await fetch(`${baseUrl}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          password: "password123",
+        }),
+      });
+      expect(response.status).toBe(201);
+      return (await response.json()) as {
+        token: string;
+        user: { id: string; username: string };
+      };
+    };
+
+    const suffix = Date.now();
+    const users = await Promise.all([
+      register(`capacity_host_${suffix}`),
+      register(`capacity_p2_${suffix}`),
+      register(`capacity_p3_${suffix}`),
+      register(`capacity_p4_${suffix}`),
+      register(`capacity_p5_${suffix}`),
+    ]);
+
+    const sockets = users.map(
+      () => new WebSocket(`ws://127.0.0.1:${port}/ws`)
+    );
+    trackedSockets.push(...sockets);
+
+    await Promise.all(
+      sockets.map((socket) => new Promise((resolve) => socket.once("open", resolve)))
+    );
+
+    await Promise.all(
+      sockets.map((socket, index) => {
+        sendSocketMessage(socket, { type: "auth", token: users[index].token });
+        return waitForMessage(socket, (message) => message.type === "auth:ok");
+      })
+    );
+
+    sendSocketMessage(sockets[0], { type: "room:create" });
+    const roomUpdate = (await waitForMessage(
+      sockets[0],
+      (message) => message.type === "room:update" && Boolean(message.room)
+    )) as Extract<ServerToClientMessage, { type: "room:update" }>;
+    const roomCode = roomUpdate.room!.code;
+
+    for (let i = 1; i <= 3; i += 1) {
+      sendSocketMessage(sockets[i], { type: "room:join", roomCode });
+      await waitForMessage(
+        sockets[0],
+        (message) =>
+          message.type === "room:update" &&
+          Boolean(message.room) &&
+          message.room.players.length === i + 1
+      );
+    }
+
+    sendSocketMessage(sockets[4], { type: "room:join", roomCode });
+    const roomFullError = (await waitForMessage(
+      sockets[4],
+      (message) => message.type === "error"
+    )) as Extract<ServerToClientMessage, { type: "error" }>;
+
+    expect(roomFullError.message).toContain("Room is full");
   });
 });
