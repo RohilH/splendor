@@ -7,23 +7,25 @@ import {
   Input,
   FormControl,
   FormLabel,
-  useToast,
-  ChakraProvider,
+  HStack,
   Checkbox,
 } from "@chakra-ui/react";
 import { useGameStore } from "./store/gameStore";
 import { GameBoard } from "./components/GameBoard";
 import { useState } from "react";
 import { VictoryScreen } from "./components/VictoryScreen";
+import { OnlineMultiplayerScreen } from "./features/online/OnlineMultiplayerScreen";
+
+type AppMode = "menu" | "local" | "online";
 
 function App() {
+  const [mode, setMode] = useState<AppMode>("menu");
   const [gameStarted, setGameStarted] = useState(false);
   const [playerCount, setPlayerCount] = useState(2);
   const [playerNames, setPlayerNames] = useState<string[]>([]);
   const [debugMode, setDebugMode] = useState(false);
   const initializeGame = useGameStore((state) => state.initializeGame);
   const isGameOver = useGameStore((state) => state.isGameOver);
-  const toast = useToast();
 
   const handlePlayerCountChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const count = parseInt(e.target.value);
@@ -51,73 +53,99 @@ function App() {
     setGameStarted(false);
     setPlayerCount(2);
     setPlayerNames([]);
+    setMode("menu");
   };
 
-  return (
-    <ChakraProvider>
+  if (mode === "online") {
+    return (
       <Box minH="100vh" bg="gray.50" p={4}>
-        {!gameStarted ? (
-          <VStack
-            align="center"
-            justify="center"
-            h="100vh"
-            spacing={8}
-            maxW="md"
-            mx="auto"
-          >
-            <Text fontSize="4xl" fontWeight="bold" color="purple.600">
-              Splendor
-            </Text>
-
-            <FormControl>
-              <FormLabel>Number of Players</FormLabel>
-              <Select value={playerCount} onChange={handlePlayerCountChange}>
-                <option value={2}>2 Players</option>
-                <option value={3}>3 Players</option>
-                <option value={4}>4 Players</option>
-              </Select>
-            </FormControl>
-
-            <VStack spacing={4} w="100%">
-              {Array.from({ length: playerCount }).map((_, index) => (
-                <FormControl key={index}>
-                  <FormLabel>Player {index + 1} Name</FormLabel>
-                  <Input
-                    placeholder={`Enter Player ${index + 1} name`}
-                    value={playerNames[index] || ""}
-                    onChange={(e) => handleNameChange(index, e.target.value)}
-                  />
-                </FormControl>
-              ))}
-            </VStack>
-
-            <Checkbox
-              isChecked={debugMode}
-              onChange={(e) => setDebugMode(e.target.checked)}
-            >
-              Debug Mode (Free Purchases)
-            </Checkbox>
-
-            <Button
-              colorScheme="purple"
-              size="lg"
-              onClick={handleStartGame}
-              isDisabled={
-                playerNames.length !== playerCount ||
-                !playerNames.every((name) => name)
-              }
-            >
-              Start New Game
-            </Button>
-          </VStack>
-        ) : (
-          <>
-            <GameBoard />
-            {isGameOver && <VictoryScreen onRestart={handleRestart} />}
-          </>
-        )}
+        <OnlineMultiplayerScreen onBack={() => setMode("menu")} />
       </Box>
-    </ChakraProvider>
+    );
+  }
+
+  return (
+    <Box minH="100vh" bg="gray.50" p={4}>
+      {!gameStarted ? (
+        <VStack
+          align="center"
+          justify="center"
+          h="100vh"
+          spacing={8}
+          maxW="md"
+          mx="auto"
+        >
+          <Text fontSize="4xl" fontWeight="bold" color="purple.600">
+            Splendor
+          </Text>
+
+          {mode === "menu" ? (
+            <VStack spacing={4} w="100%">
+              <Button colorScheme="purple" size="lg" w="100%" onClick={() => setMode("local")}>
+                Play Local (Pass-and-Play)
+              </Button>
+              <Button colorScheme="blue" size="lg" w="100%" onClick={() => setMode("online")}>
+                Play Online Multiplayer
+              </Button>
+            </VStack>
+          ) : (
+            <>
+              <FormControl>
+                <FormLabel>Number of Players</FormLabel>
+                <Select value={playerCount} onChange={handlePlayerCountChange}>
+                  <option value={2}>2 Players</option>
+                  <option value={3}>3 Players</option>
+                  <option value={4}>4 Players</option>
+                </Select>
+              </FormControl>
+
+              <VStack spacing={4} w="100%">
+                {Array.from({ length: playerCount }).map((_, index) => (
+                  <FormControl key={index}>
+                    <FormLabel>Player {index + 1} Name</FormLabel>
+                    <Input
+                      placeholder={`Enter Player ${index + 1} name`}
+                      value={playerNames[index] || ""}
+                      onChange={(e) => handleNameChange(index, e.target.value)}
+                    />
+                  </FormControl>
+                ))}
+              </VStack>
+
+              <Checkbox
+                isChecked={debugMode}
+                onChange={(e) => setDebugMode(e.target.checked)}
+              >
+                Debug Mode (Free Purchases)
+              </Checkbox>
+
+              <HStack w="100%">
+                <Button variant="outline" size="lg" flex={1} onClick={() => setMode("menu")}>
+                  Back
+                </Button>
+                <Button
+                  colorScheme="purple"
+                  size="lg"
+                  flex={1}
+                  onClick={handleStartGame}
+                  isDisabled={
+                    playerNames.length !== playerCount ||
+                    !playerNames.every((name) => name)
+                  }
+                >
+                  Start New Game
+                </Button>
+              </HStack>
+            </>
+          )}
+        </VStack>
+      ) : (
+        <>
+          <GameBoard />
+          {isGameOver && <VictoryScreen onRestart={handleRestart} />}
+        </>
+      )}
+    </Box>
   );
 }
 

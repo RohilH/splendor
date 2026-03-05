@@ -1,0 +1,314 @@
+import { create } from "zustand";
+import type {
+  ClientToServerMessage,
+  GamePublicState,
+  OnlineGameAction,
+  RoomState,
+  ServerToClientMessage,
+} from "../../shared/onlineTypes";
+
+type ConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "authenticated";
+
+interface AuthUser {
+  id: string;
+  username: string;
+}
+
+interface AuthResponse {
+  token: string;
+  user: AuthUser;
+}
+
+interface OnlineSessionStore {
+  user: AuthUser | null;
+  token: string | null;
+  room: RoomState | null;
+  gameState: GamePublicState | null;
+  status: ConnectionStatus;
+  error: string | null;
+  info: string | null;
+  initialized: boolean;
+  initialize: () => Promise<void>;
+  register: (username: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  clearError: () => void;
+  createRoom: () => void;
+  joinRoom: (roomCode: string) => void;
+  leaveRoom: () => void;
+  startGame: () => void;
+  sendGameAction: (action: OnlineGameAction) => void;
+}
+
+let activeSocket: WebSocket | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+const STORAGE_KEY = "splendor-online-session";
+
+const getSocketUrl = (): string => {
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  return `${protocol}://${window.location.host}/ws`;
+};
+
+const persistSession = (token: string | null, user: AuthUser | null): void => {
+  if (!token || !user) {
+    localStorage.removeItem(STORAGE_KEY);
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
+};
+
+const createApiClient = async <T>(
+  path: string,
+  body: Record<string, unknown>
+): Promise<T> => {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const json = (await response.json()) as { message?: string } & T;
+
+  if (!response.ok) {
+    throw new Error(json.message || "Request failed.");
+  }
+
+  return json;
+};
+
+const sendOverSocket = (message: ClientToServerMessage): void => {
+  if (!activeSocket || activeSocket.readyState !== 1) {
+    return;
+  }
+  activeSocket.send(JSON.stringify(message));
+};
+
+type StoreSetter = (
+  partial:
+    | Partial<OnlineSessionStore>
+    | ((state: OnlineSessionStore) => Partial<OnlineSessionStore>)
+) => void;
+
+const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void => {
+  if (activeSocket && (activeSocket.readyState === 0 || activeSocket.readyState === 1)) {
+    return;
+  }
+
+  const token = get().token;
+  if (!token) {
+    return;
+  }
+
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  set({ status: "connecting", error: null });
+  const socket = new WebSocket(getSocketUrl());
+  activeSocket = socket;
+
+  socket.onopen = () => {
+    set({ status: "connected" });
+    sendOverSocket({ type: "auth", token });
+  };
+
+  socket.onmessage = (event) => {
+    const message = JSON.parse(event.data) as ServerToClientMessage;
+
+    switch (message.type) {
+      case "auth:ok":
+        set({
+          status: "authenticated",
+          user: message.user,
+          error: null,
+        });
+        persistSession(get().token, message.user);
+        break;
+
+      case "auth:error":
+        set({
+          status: "disconnected",
+          error: message.message,
+          room: null,
+          gameState: null,
+        });
+        socket.close();
+        break;
+
+      case "room:update":
+        set({
+          room: message.room,
+          gameState: message.room?.started ? get().gameState : null,
+        });
+        break;
+
+      case "game:state":
+        set({
+          gameState: message.gameState,
+        });
+        break;
+
+      case "info":
+        set({ info: message.message });
+        break;
+
+      case "error":
+        set({ error: message.message });
+        break;
+
+      default:
+        break;
+    }
+  };
+
+  socket.onclose = () => {
+    activeSocket = null;
+    const shouldReconnect = Boolean(get().token);
+    set({ status: "disconnected" });
+
+    if (shouldReconnect) {
+      reconnectTimer = setTimeout(() => {
+        connectSocket(set, get);
+      }, 1500);
+    }
+  };
+};
+
+const initialState: Omit<
+  OnlineSessionStore,
+  | "initialize"
+  | "register"
+  | "login"
+  | "logout"
+  | "clearError"
+  | "createRoom"
+  | "joinRoom"
+  | "leaveRoom"
+  | "startGame"
+  | "sendGameAction"
+> = {
+  user: null,
+  token: null,
+  room: null,
+  gameState: null,
+  status: "disconnected",
+  error: null,
+  info: null,
+  initialized: false,
+};
+
+export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
+  ...initialState,
+
+  initialize: async () => {
+    if (get().initialized) {
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        set({ initialized: true });
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as { token: string; user: AuthUser };
+      set({
+        token: parsed.token,
+        user: parsed.user,
+        initialized: true,
+      });
+      connectSocket(set, get);
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+      set({ initialized: true });
+    }
+  },
+
+  register: async (username, password) => {
+    try {
+      const auth = await createApiClient<AuthResponse>("/api/auth/register", {
+        username,
+        password,
+      });
+      set({
+        token: auth.token,
+        user: auth.user,
+        room: null,
+        gameState: null,
+        error: null,
+      });
+      persistSession(auth.token, auth.user);
+      connectSocket(set, get);
+      return true;
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Registration failed.",
+      });
+      return false;
+    }
+  },
+
+  login: async (username, password) => {
+    try {
+      const auth = await createApiClient<AuthResponse>("/api/auth/login", {
+        username,
+        password,
+      });
+      set({
+        token: auth.token,
+        user: auth.user,
+        room: null,
+        gameState: null,
+        error: null,
+      });
+      persistSession(auth.token, auth.user);
+      connectSocket(set, get);
+      return true;
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Login failed.",
+      });
+      return false;
+    }
+  },
+
+  logout: () => {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+
+    if (activeSocket) {
+      activeSocket.close();
+      activeSocket = null;
+    }
+
+    persistSession(null, null);
+    set({
+      ...initialState,
+      initialized: true,
+    });
+  },
+
+  clearError: () => set({ error: null }),
+
+  createRoom: () => sendOverSocket({ type: "room:create" }),
+
+  joinRoom: (roomCode) => sendOverSocket({ type: "room:join", roomCode }),
+
+  leaveRoom: () => sendOverSocket({ type: "room:leave" }),
+
+  startGame: () => sendOverSocket({ type: "room:start" }),
+
+  sendGameAction: (action) => sendOverSocket({ type: "game:action", action }),
+}));

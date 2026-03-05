@@ -210,7 +210,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       // Validate gem selection rules
       const selectedGemCount = Object.values(selectedGems).reduce((sum, count) => sum + (count || 0), 0);
-      const uniqueGemsSelected = Object.entries(selectedGems).filter(([_, count]) => count && count > 0).length;
+      const uniqueGemsSelected = Object.entries(selectedGems).filter(([, count]) => count && count > 0).length;
       
       // Calculate current total gems
       const totalPlayerGems = Object.values(player.gems).reduce((sum, count) => sum + count, 0);
@@ -223,7 +223,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       
       // Check if taking 2 of the same gem
       if (selectedGemCount === 2 && uniqueGemsSelected === 1) {
-        const gemType = Object.entries(selectedGems).find(([_, count]) => count === 2)?.[0] as GemType;
+        const gemType = Object.entries(selectedGems).find(([, count]) => count === 2)?.[0] as GemType;
         if (!gemType || gems[gemType] < 4) return false;
       }
       // Check if taking different gems

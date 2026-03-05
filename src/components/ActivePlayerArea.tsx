@@ -196,7 +196,7 @@ export const ActivePlayerArea = () => {
     }
   };
 
-  const handleReservedCardClick = (card: Card, index: number) => {
+  const handleReservedCardClick = (index: number) => {
     const success = purchaseReservedCard(index);
     if (success) {
       handleEndTurn();
@@ -295,7 +295,7 @@ export const ActivePlayerArea = () => {
                   <CardSummary
                     key={index}
                     card={card}
-                    onClick={() => handleReservedCardClick(card, index)}
+                    onClick={() => handleReservedCardClick(index)}
                   />
                 ))}
               </HStack>
