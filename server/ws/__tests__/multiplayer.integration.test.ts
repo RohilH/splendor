@@ -208,4 +208,142 @@ describe("multiplayer websocket integration", () => {
 
     expect(authError.message).toContain("Authenticate");
   });
+
+  it("resynchronizes room and game state after reconnect", async () => {
+    serverInstance = createMultiplayerServer();
+    const port = await listen(serverInstance.server);
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    const userSuffix = Date.now();
+    const register = async (username: string) => {
+      const response = await fetch(`${baseUrl}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          password: "password123",
+        }),
+      });
+      expect(response.status).toBe(201);
+      return (await response.json()) as {
+        token: string;
+        user: { id: string; username: string };
+      };
+    };
+
+    const userA = await register(`reconnect_alice_${userSuffix}`);
+    const userB = await register(`reconnect_bob_${userSuffix}`);
+
+    const socketA = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    const socketB = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    trackedSockets.push(socketA, socketB);
+
+    await Promise.all([
+      new Promise((resolve) => socketA.once("open", resolve)),
+      new Promise((resolve) => socketB.once("open", resolve)),
+    ]);
+
+    sendSocketMessage(socketA, { type: "auth", token: userA.token });
+    sendSocketMessage(socketB, { type: "auth", token: userB.token });
+    await Promise.all([
+      waitForMessage(socketA, (message) => message.type === "auth:ok"),
+      waitForMessage(socketB, (message) => message.type === "auth:ok"),
+    ]);
+
+    sendSocketMessage(socketA, { type: "room:create" });
+    const roomUpdateA = (await waitForMessage(
+      socketA,
+      (message) => message.type === "room:update" && Boolean(message.room)
+    )) as Extract<ServerToClientMessage, { type: "room:update" }>;
+    const roomCode = roomUpdateA.room!.code;
+
+    sendSocketMessage(socketB, { type: "room:join", roomCode });
+    await Promise.all([
+      waitForMessage(
+        socketA,
+        (message) =>
+          message.type === "room:update" &&
+          Boolean(message.room) &&
+          message.room.players.length === 2
+      ),
+      waitForMessage(
+        socketB,
+        (message) =>
+          message.type === "room:update" &&
+          Boolean(message.room) &&
+          message.room.players.length === 2
+      ),
+    ]);
+
+    sendSocketMessage(socketA, { type: "room:start" });
+    await Promise.all([
+      waitForMessage(socketA, (message) => message.type === "game:state"),
+      waitForMessage(socketB, (message) => message.type === "game:state"),
+    ]);
+
+    sendSocketMessage(socketA, {
+      type: "game:action",
+      action: {
+        type: "take_gems",
+        gems: { diamond: 1 },
+      },
+    });
+    await waitForMessage(
+      socketA,
+      (message) =>
+        message.type === "game:state" &&
+        message.gameState.currentPlayer === 1 &&
+        message.gameState.players[0].gems.diamond === 1
+    );
+
+    const disconnectedUpdatePromise = waitForMessage(
+      socketA,
+      (message) =>
+        message.type === "room:update" &&
+        Boolean(message.room) &&
+        message.room.players.some((player) => player.userId === userB.user.id && !player.connected)
+    );
+    const socketBClose = new Promise((resolve) => socketB.once("close", resolve));
+    socketB.close();
+    await socketBClose;
+    await disconnectedUpdatePromise;
+
+    const reconnectedSocketB = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    trackedSockets.push(reconnectedSocketB);
+    await new Promise((resolve) => reconnectedSocketB.once("open", resolve));
+
+    const roomAfterReconnectPromise = waitForMessage(
+      reconnectedSocketB,
+      (message) =>
+        message.type === "room:update" &&
+        Boolean(message.room) &&
+        message.room.code === roomCode
+    );
+    const gameAfterReconnectPromise = waitForMessage(
+      reconnectedSocketB,
+      (message) =>
+        message.type === "game:state" &&
+        message.gameState.players[0].gems.diamond === 1 &&
+        message.gameState.currentPlayer === 1
+    );
+    sendSocketMessage(reconnectedSocketB, { type: "auth", token: userB.token });
+
+    await waitForMessage(
+      reconnectedSocketB,
+      (message) => message.type === "auth:ok"
+    );
+
+    const roomAfterReconnect = (await roomAfterReconnectPromise) as Extract<
+      ServerToClientMessage,
+      { type: "room:update" }
+    >;
+    expect(roomAfterReconnect.room?.players.length).toBe(2);
+
+    const gameAfterReconnect = (await gameAfterReconnectPromise) as Extract<
+      ServerToClientMessage,
+      { type: "game:state" }
+    >;
+
+    expect(gameAfterReconnect.gameState.currentPlayer).toBe(1);
+  }, 20000);
 });
