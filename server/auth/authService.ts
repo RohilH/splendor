@@ -17,8 +17,12 @@ interface JwtPayload {
 }
 
 export class AuthService {
-  private readonly userStore = new UserStore();
+  private readonly userStore: UserStore;
   private readonly jwtSecret = getEnvConfig().jwtSecret;
+
+  public constructor(userStore?: UserStore) {
+    this.userStore = userStore ?? new UserStore();
+  }
 
   public async register(input: {
     username: string;

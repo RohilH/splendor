@@ -13,7 +13,7 @@ interface UserFilePayload {
   users: UserRecord[];
 }
 
-const getUserFilePath = (): string => {
+const getDefaultUserFilePath = (): string => {
   const configuredPath = process.env.USER_STORE_FILE;
   if (configuredPath) {
     return path.resolve(configuredPath);
@@ -24,8 +24,7 @@ const getUserFilePath = (): string => {
 const normalizeUsername = (username: string): string =>
   username.trim().toLowerCase();
 
-const ensureUserFile = async (): Promise<void> => {
-  const userFilePath = getUserFilePath();
+const ensureUserFile = async (userFilePath: string): Promise<void> => {
   await fs.mkdir(path.dirname(userFilePath), { recursive: true });
 
   try {
@@ -36,9 +35,8 @@ const ensureUserFile = async (): Promise<void> => {
   }
 };
 
-const readUsers = async (): Promise<UserRecord[]> => {
-  const userFilePath = getUserFilePath();
-  await ensureUserFile();
+const readUsers = async (userFilePath: string): Promise<UserRecord[]> => {
+  await ensureUserFile(userFilePath);
   const fileContents = await fs.readFile(userFilePath, "utf-8");
 
   try {
@@ -53,8 +51,7 @@ const readUsers = async (): Promise<UserRecord[]> => {
   }
 };
 
-const writeUsers = async (users: UserRecord[]): Promise<void> => {
-  const userFilePath = getUserFilePath();
+const writeUsers = async (userFilePath: string, users: UserRecord[]): Promise<void> => {
   const tempPath = `${userFilePath}.tmp`;
   const payload: UserFilePayload = { users };
   await fs.writeFile(tempPath, JSON.stringify(payload, null, 2), "utf-8");
@@ -63,6 +60,11 @@ const writeUsers = async (users: UserRecord[]): Promise<void> => {
 
 export class UserStore {
   private static lock: Promise<void> = Promise.resolve();
+  private readonly userFilePath: string;
+
+  public constructor(userFilePath?: string) {
+    this.userFilePath = path.resolve(userFilePath ?? getDefaultUserFilePath());
+  }
 
   private async withLock<T>(operation: () => Promise<T>): Promise<T> {
     const runOperation = UserStore.lock.then(operation);
@@ -75,7 +77,7 @@ export class UserStore {
 
   public async getByUsername(username: string): Promise<UserRecord | null> {
     return this.withLock(async () => {
-      const users = await readUsers();
+      const users = await readUsers(this.userFilePath);
       const usernameKey = normalizeUsername(username);
       return users.find((user) => user.usernameKey === usernameKey) ?? null;
     });
@@ -83,7 +85,7 @@ export class UserStore {
 
   public async getById(userId: string): Promise<UserRecord | null> {
     return this.withLock(async () => {
-      const users = await readUsers();
+      const users = await readUsers(this.userFilePath);
       return users.find((user) => user.id === userId) ?? null;
     });
   }
@@ -94,7 +96,7 @@ export class UserStore {
     passwordHash: string;
   }): Promise<UserRecord> {
     return this.withLock(async () => {
-      const users = await readUsers();
+      const users = await readUsers(this.userFilePath);
       const username = input.username.trim();
       const usernameKey = normalizeUsername(username);
 
@@ -112,7 +114,7 @@ export class UserStore {
       };
 
       users.push(userRecord);
-      await writeUsers(users);
+      await writeUsers(this.userFilePath, users);
       return userRecord;
     });
   }
