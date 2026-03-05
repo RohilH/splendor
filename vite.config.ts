@@ -19,6 +19,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    exclude: ['e2e.test.mjs', 'node_modules/**'],
+    exclude: ['e2e.test.mjs', 'online.e2e.test.mjs', 'node_modules/**'],
   },
 })
