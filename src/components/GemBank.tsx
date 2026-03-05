@@ -8,51 +8,7 @@ import {
 } from "@chakra-ui/react";
 import { useGameStore } from "../store/gameStore";
 import { GemType } from "../types/game";
-import { create } from "zustand";
-
-// Temporary store for selected gems during a turn
-interface TempGemStore {
-  selectedGems: Record<GemType, number>;
-  addGem: (gem: GemType) => void;
-  removeGem: (gem: GemType) => void;
-  clearGems: () => void;
-}
-
-export const useTempGemStore = create<TempGemStore>((set) => ({
-  selectedGems: {
-    diamond: 0,
-    sapphire: 0,
-    emerald: 0,
-    ruby: 0,
-    onyx: 0,
-    gold: 0,
-  },
-  addGem: (gem) =>
-    set((state) => ({
-      selectedGems: {
-        ...state.selectedGems,
-        [gem]: state.selectedGems[gem] + 1,
-      },
-    })),
-  removeGem: (gem) =>
-    set((state) => ({
-      selectedGems: {
-        ...state.selectedGems,
-        [gem]: Math.max(0, state.selectedGems[gem] - 1),
-      },
-    })),
-  clearGems: () =>
-    set({
-      selectedGems: {
-        diamond: 0,
-        sapphire: 0,
-        emerald: 0,
-        ruby: 0,
-        onyx: 0,
-        gold: 0,
-      },
-    }),
-}));
+import { useTempGemStore } from "../store/tempGemStore";
 
 const gemImages: Record<GemType, string> = {
   diamond: "/gems/diamond.svg",

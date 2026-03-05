@@ -11,7 +11,7 @@ import {
 } from "@chakra-ui/react";
 import { useGameStore } from "../store/gameStore";
 import { GemType, Card } from "../types/game";
-import { useTempGemStore } from "./GemBank";
+import { useTempGemStore } from "../store/tempGemStore";
 import { canAffordCard } from "../../shared/game/selectors";
 
 const gemImages: Record<GemType, string> = {
