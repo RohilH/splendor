@@ -28,6 +28,14 @@ async function run() {
   const title = await page.$eval('body', el => el.textContent);
   assert(title.includes('Splendor'), 'Title "Splendor" is visible');
 
+  // Select local mode first
+  await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const localBtn = buttons.find(b => b.textContent.includes('Play Local'));
+    if (localBtn) localBtn.click();
+  });
+  await sleep(400);
+
   // Player count selector exists
   const selectEl = await page.$('select');
   assert(!!selectEl, 'Player count select exists');
