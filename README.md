@@ -145,6 +145,52 @@ For deployment behind your personal site/domain:
    - `/ws` -> backend WebSocket upgrade
 4. Ensure secure secret management for `JWT_SECRET`.
 
+### Nginx reverse proxy example (HTTPS + WSS)
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name yourdomain.com;
+
+  # Frontend build output
+  root /var/www/splendor/dist;
+  index index.html;
+
+  location / {
+    try_files $uri /index.html;
+  }
+
+  location /api/ {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location /ws {
+    proxy_pass http://127.0.0.1:3001/ws;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+  }
+}
+```
+
+### Caddy reverse proxy example
+
+```caddy
+yourdomain.com {
+  root * /var/www/splendor/dist
+  file_server
+  try_files {path} /index.html
+
+  reverse_proxy /api/* 127.0.0.1:3001
+  reverse_proxy /ws 127.0.0.1:3001
+}
+```
+
 ## Contributing
 
 1. Fork the repository
