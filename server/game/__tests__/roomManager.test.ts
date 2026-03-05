@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type WebSocket from "ws";
-import type { ServerToClientMessage } from "../../../shared/onlineTypes";
+import type { ServerToClientMessage } from "../../../shared/protocol/wsMessages";
 import { RoomManager } from "../roomManager";
 
 const createMockSocket = (messages: ServerToClientMessage[]): WebSocket =>

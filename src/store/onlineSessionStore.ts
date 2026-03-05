@@ -1,11 +1,9 @@
 import { create } from "zustand";
+import type { GamePublicState, OnlineGameAction, RoomState } from "../../shared/onlineTypes";
 import type {
   ClientToServerMessage,
-  GamePublicState,
-  OnlineGameAction,
-  RoomState,
   ServerToClientMessage,
-} from "../../shared/onlineTypes";
+} from "../../shared/protocol/wsMessages";
 import { WsClient } from "../network/wsClient";
 
 type ConnectionStatus =

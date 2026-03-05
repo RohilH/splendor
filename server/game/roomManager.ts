@@ -1,6 +1,7 @@
 import type WebSocket from "ws";
 import { customAlphabet } from "nanoid";
-import type { RoomState, ServerToClientMessage, OnlineGameAction } from "../../shared/onlineTypes";
+import type { RoomState, OnlineGameAction } from "../../shared/onlineTypes";
+import type { ServerToClientMessage } from "../../shared/protocol/wsMessages";
 import { applyGameAction, createInitialGameState, toPublicGameState } from "./engine";
 import type { GameServerState } from "./engine";
 

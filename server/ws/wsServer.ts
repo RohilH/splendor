@@ -2,7 +2,10 @@ import type { Server as HttpServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
 import { AuthService } from "../auth/authService";
 import { RoomManager } from "../game/roomManager";
-import type { ClientToServerMessage, ServerToClientMessage } from "../../shared/onlineTypes";
+import type {
+  ClientToServerMessage,
+  ServerToClientMessage,
+} from "../../shared/protocol/wsMessages";
 
 interface SocketSession {
   userId: string;

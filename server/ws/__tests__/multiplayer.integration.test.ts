@@ -6,7 +6,7 @@ import { createMultiplayerServer } from "../../createServer";
 import type {
   ClientToServerMessage,
   ServerToClientMessage,
-} from "../../../shared/onlineTypes";
+} from "../../../shared/protocol/wsMessages";
 
 type MessagePredicate = (message: ServerToClientMessage) => boolean;
 

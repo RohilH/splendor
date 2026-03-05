@@ -1,7 +1,7 @@
 import type {
   ClientToServerMessage,
   ServerToClientMessage,
-} from "../../shared/onlineTypes";
+} from "../../shared/protocol/wsMessages";
 
 interface WsClientHandlers {
   onOpen?: () => void;
