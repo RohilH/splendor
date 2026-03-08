@@ -9,15 +9,7 @@ import {
 import { useGameStore } from "../store/gameStore";
 import { GemType, Gems, Player } from "../types/game";
 import { useTempGemStore } from "../store/tempGemStore";
-
-const gemImages: Record<GemType, string> = {
-  diamond: "/gems/diamond.svg",
-  sapphire: "/gems/sapphire.svg",
-  emerald: "/gems/emerald.svg",
-  ruby: "/gems/ruby.svg",
-  onyx: "/gems/onyx.svg",
-  gold: "/gems/gold.svg",
-};
+import { gemImages } from "../utils/constants";
 
 const gemColors: Record<GemType, string> = {
   diamond: "#ffffff",
