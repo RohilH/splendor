@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertIcon, Box, Grid, Text, VStack } from "@chakra-ui/react";
+import { Alert, AlertDescription, AlertIcon, Box, Grid, VStack } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 import { canAffordCard, calculatePlayerPoints } from "../../../shared/game/selectors";
 import type { GamePublicState, GemType, OnlineGameAction } from "../../../shared/onlineTypes";
@@ -75,7 +75,12 @@ export const OnlineGameScreen = ({
 
   return (
     <>
-      <Box p={4} pb={48} bg="gray.100" minH="100vh">
+      <Box
+        p={4}
+        pb={48}
+        bg="linear-gradient(180deg, #314d3f 0%, #1f3028 100%)"
+        minH="100vh"
+      >
         {gameState.pendingNobleSelectionPlayerId && !isMyNobleSelection && currentPlayer && (
           <Alert status="info" mb={4} borderRadius="lg">
             <AlertIcon />
@@ -85,8 +90,8 @@ export const OnlineGameScreen = ({
           </Alert>
         )}
 
-        <Grid templateColumns="1fr 2fr 1fr" gap={6}>
-          <VStack gap={4} align="stretch">
+        <Grid templateColumns="1fr 2.3fr 1fr" gap={6}>
+          <VStack gap={5} align="stretch">
             {gameState.players.map((player, index) => (
               <PlayerArea
                 key={player.userId}
@@ -105,12 +110,10 @@ export const OnlineGameScreen = ({
               const key: keyof GamePublicState["visibleCards"] = `level${level}`;
               return (
                 <Box key={level}>
-                  <Text fontSize="sm" color="gray.600" mb={2}>
-                    Level {level} deck remaining: {gameState.deckCounts[key]}
-                  </Text>
                   <CardField
                     level={level}
                     cards={gameState.visibleCards[key]}
+                    remainingCards={gameState.deckCounts[key]}
                     player={myPlayer ?? undefined}
                     canAfford={(card) =>
                       Boolean(myPlayer && isMyTurn && canAffordCard(myPlayer, card))

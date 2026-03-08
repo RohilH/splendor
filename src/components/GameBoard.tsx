@@ -14,8 +14,13 @@ export const GameBoard = () => {
   const selectNoble = useGameStore((state) => state.selectNoble);
 
   return (
-    <Box p={4} pb={48} bg="gray.100" minH="100vh">
-      <Grid templateColumns="1fr 2fr 1fr" gap={6}>
+    <Box
+      p={4}
+      pb={48}
+      bg="linear-gradient(180deg, #314d3f 0%, #1f3028 100%)"
+      minH="100vh"
+    >
+      <Grid templateColumns="1fr 2.3fr 1fr" gap={6}>
         <VStack gap={4} align="stretch">
           {players.map((player, index) => (
             <PlayerArea
@@ -26,7 +31,7 @@ export const GameBoard = () => {
           ))}
         </VStack>
 
-        <VStack gap={4} align="stretch">
+        <VStack gap={5} align="stretch">
           <CardField level={3} />
           <CardField level={2} />
           <CardField level={1} />

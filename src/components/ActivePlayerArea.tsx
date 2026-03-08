@@ -14,24 +14,8 @@ import { GemType, Card, Player } from "../types/game";
 import { useTempGemStore } from "../store/tempGemStore";
 import { canAffordCard, countGemBonuses } from "../../shared/game/selectors";
 import type { OnlinePlayer } from "../../shared/onlineTypes";
-
-const gemImages: Record<GemType, string> = {
-  diamond: "/gems/diamond.svg",
-  sapphire: "/gems/sapphire.svg",
-  emerald: "/gems/emerald.svg",
-  ruby: "/gems/ruby.svg",
-  onyx: "/gems/onyx.svg",
-  gold: "/gems/gold.svg",
-};
-
-const gemColors: Record<GemType, string> = {
-  diamond: "#ffffff",
-  sapphire: "#0066cc",
-  emerald: "#00cc66",
-  ruby: "#cc0000",
-  onyx: "#333333",
-  gold: "#ffcc00",
-};
+import { gemImages } from "../utils/constants";
+import { DevelopmentCard } from "./DevelopmentCard";
 
 interface CardSummaryProps {
   card: Card;
@@ -78,18 +62,11 @@ const CardSummary = ({
         }
       >
         <Box
-          w="40px"
-          h="56px"
-          bg={gemColors[card.gem]}
-          borderRadius="md"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
           position="relative"
+          w="64px"
+          h="90px"
           cursor={onClick && canAfford && !isDisabled ? "pointer" : "default"}
           onClick={onClick && canAfford && !isDisabled ? onClick : undefined}
-          border="1px solid"
-          borderColor={card.gem === "diamond" ? "gray.300" : "transparent"}
           opacity={isDisabled ? 0.7 : 1}
           _hover={{
             "& > .card-actions": {
@@ -97,13 +74,7 @@ const CardSummary = ({
             },
           }}
         >
-          <Text
-            fontSize="lg"
-            fontWeight="bold"
-            color={card.gem === "diamond" ? "black" : "white"}
-          >
-            {card.points || "·"}
-          </Text>
+          <DevelopmentCard card={card} size="compact" />
 
           {/* Purchase Button Overlay */}
           {onClick && (
@@ -117,7 +88,7 @@ const CardSummary = ({
               opacity={0}
               transition="all 0.2s"
               bg="blackAlpha.700"
-              borderRadius="md"
+              borderRadius="16px"
               display="flex"
               alignItems="center"
               justifyContent="center"
@@ -326,7 +297,7 @@ export const ActivePlayerArea = ({
             <Divider orientation="vertical" h="90px" />
 
             {/* Reserved Cards Section */}
-            <VStack align="start" minW="180px">
+            <VStack align="start" minW="220px">
               <Text fontSize="sm" fontWeight="semibold">
                 Reserved Cards ({activePlayer.reservedCards.length}/3)
               </Text>

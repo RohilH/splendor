@@ -12,14 +12,7 @@ import {
   HStack,
 } from "@chakra-ui/react";
 import { Noble, GemType } from "../types/game";
-
-const gemImages: Record<Exclude<GemType, "gold">, string> = {
-  diamond: "/gems/diamond.svg",
-  sapphire: "/gems/sapphire.svg",
-  emerald: "/gems/emerald.svg",
-  ruby: "/gems/ruby.svg",
-  onyx: "/gems/onyx.svg",
-};
+import { gemImages } from "../utils/constants";
 
 interface NobleSelectionModalProps {
   isOpen: boolean;
