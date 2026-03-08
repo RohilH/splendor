@@ -7,7 +7,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { useGameStore } from "../store/gameStore";
-import { GemType } from "../types/game";
+import { GemType, Gems, Player } from "../types/game";
 import { useTempGemStore } from "../store/tempGemStore";
 
 const gemImages: Record<GemType, string> = {
@@ -28,12 +28,29 @@ const gemColors: Record<GemType, string> = {
   gold: "#ffcc00",
 };
 
-export const GemBank = () => {
-  const gems = useGameStore((state) => state.gems);
+interface GemBankProps {
+  gems?: Gems;
+  player?: Pick<Player, "gems">;
+  selectedGems?: Record<GemType, number>;
+  addGem?: (gem: GemType) => void;
+  isInteractive?: boolean;
+}
+
+export const GemBank = ({
+  gems: gemsProp,
+  player: playerProp,
+  selectedGems: selectedGemsProp,
+  addGem: addGemProp,
+  isInteractive = true,
+}: GemBankProps = {}) => {
+  const storeGems = useGameStore((state) => state.gems);
   const { players, currentPlayer } = useGameStore();
   const toast = useToast();
-  const { selectedGems, addGem } = useTempGemStore();
-  const player = players[currentPlayer];
+  const tempGemStore = useTempGemStore();
+  const gems = gemsProp ?? storeGems;
+  const selectedGems = selectedGemsProp ?? tempGemStore.selectedGems;
+  const addGem = addGemProp ?? tempGemStore.addGem;
+  const player = playerProp ?? players[currentPlayer];
 
   // Calculate total gems including selected ones
   const totalPlayerGems = Object.values(player.gems).reduce(
@@ -149,6 +166,7 @@ export const GemBank = () => {
         {(Object.entries(gems) as [GemType, number][]).map(([gem, count]) => {
           const availableGems = count - (selectedGems[gem] || 0);
           const isDisabled =
+            !isInteractive ||
             gem === "gold" ||
             availableGems === 0 ||
             selectedGemCount >= remainingSpace ||

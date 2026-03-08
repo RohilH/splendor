@@ -1,10 +1,11 @@
 import { Box, HStack, Text, VStack, SimpleGrid } from "@chakra-ui/react";
+import { countGemBonuses, calculatePlayerPoints } from "../../shared/game/selectors";
 import { Player, GemType } from "../types/game";
-import { useGameStore } from "../store/gameStore";
 
 interface PlayerAreaProps {
   player: Player;
   isActive: boolean;
+  calculatePoints?: (player: Player) => number;
 }
 
 // Bank gem colors
@@ -17,15 +18,13 @@ const bankGemColors: Record<GemType, { bg: string; border: string }> = {
   gold: { bg: "#d69e2e", border: "#b7791f" },
 };
 
-export const PlayerArea = ({ player, isActive }: PlayerAreaProps) => {
-  const calculatePoints = useGameStore((state) => state.calculatePoints);
+export const PlayerArea = ({
+  player,
+  isActive,
+  calculatePoints = calculatePlayerPoints,
+}: PlayerAreaProps) => {
   const totalPoints = calculatePoints(player);
-  const gemBonuses = (
-    ["diamond", "sapphire", "emerald", "ruby", "onyx"] as const
-  ).reduce((acc, gem) => {
-    acc[gem] = player.purchasedCards.filter((card) => card.gem === gem).length;
-    return acc;
-  }, {} as Record<Exclude<GemType, "gold">, number>);
+  const gemBonuses = countGemBonuses(player) as Record<Exclude<GemType, "gold">, number>;
 
   return (
     <Box

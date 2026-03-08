@@ -79,22 +79,25 @@ export const OnlineMultiplayerScreen = ({ onBack }: { onBack: () => void }) => {
         </Alert>
       )}
 
-      <LobbyScreen
-        room={room}
-        currentUserId={user.id}
-        roomCodeInput={roomCodeInput}
-        onRoomCodeInputChange={setRoomCodeInput}
-        onCreateRoom={createRoom}
-        onJoinRoom={joinRoom}
-        onLeaveRoom={leaveRoom}
-        onStartGame={startGame}
-      />
+      {!room?.started && (
+        <LobbyScreen
+          room={room}
+          currentUserId={user.id}
+          roomCodeInput={roomCodeInput}
+          onRoomCodeInputChange={setRoomCodeInput}
+          onCreateRoom={createRoom}
+          onJoinRoom={joinRoom}
+          onLeaveRoom={leaveRoom}
+          onStartGame={startGame}
+        />
+      )}
 
       {room?.started && gameState && (
         <OnlineGameScreen
           userId={user.id}
           gameState={gameState}
           sendGameAction={sendGameAction}
+          onLeaveGame={leaveRoom}
         />
       )}
     </VStack>

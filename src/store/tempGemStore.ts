@@ -8,7 +8,7 @@ interface TempGemStore {
   clearGems: () => void;
 }
 
-const createEmptyGemSelection = (): Record<GemType, number> => ({
+export const createEmptyGemSelection = (): Record<GemType, number> => ({
   diamond: 0,
   sapphire: 0,
   emerald: 0,

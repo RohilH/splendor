@@ -1,14 +1,29 @@
 import { Box, HStack, Text, VStack, Image, Button } from "@chakra-ui/react";
 import { useGameStore } from "../store/gameStore";
-import { Card, GemType } from "../types/game";
+import { Card, GemType, Player } from "../types/game";
 import { gemColors, gemImages } from "../utils/constants";
 import { canAffordCard } from "../../shared/game/selectors";
+import type { OnlinePlayer } from "../../shared/onlineTypes";
 
 interface CardFieldProps {
   level: 1 | 2 | 3;
+  cards?: Card[];
+  player?: Player | OnlinePlayer;
+  canAfford?: (card: Card) => boolean;
+  canReserveCard?: boolean;
+  onPurchase?: (card: Card, cardIndex: number) => void;
+  onReserve?: (card: Card, cardIndex: number) => void;
 }
 
-export const CardField = ({ level }: CardFieldProps) => {
+export const CardField = ({
+  level,
+  cards: cardsProp,
+  player: playerProp,
+  canAfford: canAffordProp,
+  canReserveCard: canReserveCardProp,
+  onPurchase,
+  onReserve,
+}: CardFieldProps) => {
   const { visibleCards, currentPlayer, players } = useGameStore();
   const purchaseCard = useGameStore((state) => state.purchaseCard);
   const reserveCard = useGameStore((state) => state.reserveCard);
@@ -16,15 +31,13 @@ export const CardField = ({ level }: CardFieldProps) => {
     (state) => state.assignNoblesAndEndTurn
   );
 
-  const cards = visibleCards[`level${level}`];
-  const player = players[currentPlayer];
+  const cards = cardsProp ?? visibleCards[`level${level}`];
+  const player = playerProp ?? players[currentPlayer];
 
-  const canAfford = (card: Card) =>
-    canAffordCard(player, card, useGameStore.getState().debugMode);
-
-  const canReserveCard = () => {
-    return player.reservedCards.length < 3;
-  };
+  const canAfford =
+    canAffordProp ??
+    ((card: Card) => canAffordCard(player, card, useGameStore.getState().debugMode));
+  const canReserveCard = canReserveCardProp ?? player.reservedCards.length < 3;
 
   return (
     <HStack spacing={4} align="start">
@@ -135,6 +148,11 @@ export const CardField = ({ level }: CardFieldProps) => {
               colorScheme="blue"
               isDisabled={!canAfford(card)}
               onClick={() => {
+                if (onPurchase) {
+                  onPurchase(card, index);
+                  return;
+                }
+
                 const success = purchaseCard(card, level);
                 if (success) assignNoblesAndEndTurn();
               }}
@@ -145,13 +163,18 @@ export const CardField = ({ level }: CardFieldProps) => {
               size="sm"
               width="full"
               colorScheme="gray"
-              isDisabled={!canReserveCard()}
+              isDisabled={!canReserveCard}
               onClick={() => {
+                if (onReserve) {
+                  onReserve(card, index);
+                  return;
+                }
+
                 const success = reserveCard(card, level);
                 if (success) assignNoblesAndEndTurn();
               }}
             >
-              {canReserveCard() ? "Reserve" : "Reserve Full"}
+              {canReserveCard ? "Reserve" : "Reserve Full"}
             </Button>
           </VStack>
         </Box>
