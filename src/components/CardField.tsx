@@ -1,13 +1,29 @@
 import { Box, HStack, Text, VStack, Image, Button } from "@chakra-ui/react";
 import { useGameStore } from "../store/gameStore";
-import { Card, GemType } from "../types/game";
+import { Card, GemType, Player } from "../types/game";
 import { gemColors, gemImages } from "../utils/constants";
+import { canAffordCard } from "../../shared/game/selectors";
+import type { OnlinePlayer } from "../../shared/onlineTypes";
 
 interface CardFieldProps {
   level: 1 | 2 | 3;
+  cards?: Card[];
+  player?: Player | OnlinePlayer;
+  canAfford?: (card: Card) => boolean;
+  canReserveCard?: boolean;
+  onPurchase?: (card: Card, cardIndex: number) => void;
+  onReserve?: (card: Card, cardIndex: number) => void;
 }
 
-export const CardField = ({ level }: CardFieldProps) => {
+export const CardField = ({
+  level,
+  cards: cardsProp,
+  player: playerProp,
+  canAfford: canAffordProp,
+  canReserveCard: canReserveCardProp,
+  onPurchase,
+  onReserve,
+}: CardFieldProps) => {
   const { visibleCards, currentPlayer, players } = useGameStore();
   const purchaseCard = useGameStore((state) => state.purchaseCard);
   const reserveCard = useGameStore((state) => state.reserveCard);
@@ -15,56 +31,13 @@ export const CardField = ({ level }: CardFieldProps) => {
     (state) => state.assignNoblesAndEndTurn
   );
 
-  const cards = visibleCards[`level${level}`];
-  const player = players[currentPlayer];
+  const cards = cardsProp ?? visibleCards[`level${level}`];
+  const player = playerProp ?? players[currentPlayer];
 
-  const canAffordCard = (card: Card) => {
-    const player =
-      useGameStore.getState().players[useGameStore.getState().currentPlayer];
-    const debugMode = useGameStore.getState().debugMode;
-
-    // In debug mode, player can afford any card
-    if (debugMode) return true;
-
-    // Calculate total resources (gems + bonuses) for each type
-    const totalResources: Record<GemType, number> = {
-      diamond: player.gems.diamond,
-      sapphire: player.gems.sapphire,
-      emerald: player.gems.emerald,
-      ruby: player.gems.ruby,
-      onyx: player.gems.onyx,
-      gold: player.gems.gold,
-    };
-
-    // Add bonuses from purchased cards
-    player.purchasedCards.forEach((purchasedCard) => {
-      totalResources[purchasedCard.gem]++;
-    });
-
-    // Check if player can afford the card
-    let goldNeeded = 0;
-
-    // For each cost, calculate how many gems we need
-    for (const [gem, required] of Object.entries(card.cost)) {
-      const gemType = gem as GemType;
-      const bonuses = player.purchasedCards.filter(
-        (c) => c.gem === gemType
-      ).length;
-      const remainingCost = Math.max(0, required - bonuses);
-
-      // If we can't cover it with gems + bonuses, we need gold
-      if (remainingCost > player.gems[gemType]) {
-        goldNeeded += remainingCost - player.gems[gemType];
-      }
-    }
-
-    // Return true if we have enough gold to cover what we're missing
-    return goldNeeded <= player.gems.gold;
-  };
-
-  const canReserveCard = () => {
-    return player.reservedCards.length < 3;
-  };
+  const canAfford =
+    canAffordProp ??
+    ((card: Card) => canAffordCard(player, card, useGameStore.getState().debugMode));
+  const canReserveCard = canReserveCardProp ?? player.reservedCards.length < 3;
 
   return (
     <HStack spacing={4} align="start">
@@ -173,25 +146,35 @@ export const CardField = ({ level }: CardFieldProps) => {
               size="sm"
               width="full"
               colorScheme="blue"
-              isDisabled={!canAffordCard(card)}
+              isDisabled={!canAfford(card)}
               onClick={() => {
+                if (onPurchase) {
+                  onPurchase(card, index);
+                  return;
+                }
+
                 const success = purchaseCard(card, level);
                 if (success) assignNoblesAndEndTurn();
               }}
             >
-              {canAffordCard(card) ? "Purchase" : "Can't Afford"}
+              {canAfford(card) ? "Purchase" : "Can't Afford"}
             </Button>
             <Button
               size="sm"
               width="full"
               colorScheme="gray"
-              isDisabled={!canReserveCard()}
+              isDisabled={!canReserveCard}
               onClick={() => {
+                if (onReserve) {
+                  onReserve(card, index);
+                  return;
+                }
+
                 const success = reserveCard(card, level);
                 if (success) assignNoblesAndEndTurn();
               }}
             >
-              {canReserveCard() ? "Reserve" : "Reserve Full"}
+              {canReserveCard ? "Reserve" : "Reserve Full"}
             </Button>
           </VStack>
         </Box>

@@ -1,20 +1,55 @@
 # Splendor Web Game
 
-A web-based implementation of the board game Splendor using React, TypeScript, and Chakra UI.
+A web-based implementation of Splendor with:
 
-## Setup
+- **Local pass-and-play mode**
+- **Online multiplayer mode (2-4 players)**
+- **Account-based authentication**
+- **Real-time gameplay over WebSockets**
+
+Built with React, TypeScript, Chakra UI, Zustand, Express, and `ws`.
+
+## Quick Start
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
-2. Start the development server:
+2. Start client + multiplayer backend together:
+
 ```bash
 npm run dev
 ```
 
-3. Open your browser and navigate to the URL shown in the terminal (usually http://localhost:5173)
+3. Open the app:
+
+```text
+http://localhost:5173
+```
+
+4. Choose **Play Online Multiplayer**, register two different accounts in two browser windows, create/join room, and start game.
+
+## Running services separately
+
+Backend only:
+
+```bash
+npm run dev:server
+```
+
+Frontend only:
+
+```bash
+npm run dev:client
+```
+
+Typecheck backend code:
+
+```bash
+npm run typecheck:server
+```
 
 ## Game Rules
 
@@ -52,6 +87,7 @@ The game ends when a player reaches 15 prestige points. Complete the current rou
 ## Testing
 
 Run unit tests (Vitest):
+
 ```bash
 npm test
 ```
@@ -67,14 +103,105 @@ npm run dev &
 node e2e.test.mjs
 ```
 
-## Development
+Run online multiplayer E2E (2 browser clients, auth + room + gameplay turn sync):
+```bash
+npm run dev &
+npm run test:online:e2e
+```
 
-This project uses:
+Generate side-by-side demo video frames + MP4 artifact for online flow:
+```bash
+npm run dev &
+npm run demo:online:video
+```
 
-- React with TypeScript for the UI
-- Chakra UI for styling
-- Zustand for state management
-- Vite for development and building
+## Authentication + Multiplayer Architecture
+
+- `POST /api/auth/register` — create account
+- `POST /api/auth/login` — login
+- `GET /api/auth/me` — fetch current user
+- `WS /ws` — authenticated websocket channel for:
+  - room creation/join/leave/start
+  - gameplay action submissions
+  - real-time room/game state broadcasts
+
+The server is authoritative for move validation and turn progression. Clients submit actions and receive canonical game snapshots.
+
+## Environment variables
+
+Optional (recommended in production):
+
+- `PORT` (default: `3001`)
+- `JWT_SECRET` (default fallback exists for local dev only)
+- `WS_HEARTBEAT_INTERVAL_MS` (default: `15000`)
+- `STALE_ROOM_CLEANUP_INTERVAL_MS` (default: `30000`)
+- `RECONNECT_GRACE_MS` (default: `900000`, 15 minutes)
+- `IDLE_ROOM_TTL_MS` (default: `120000`, 2 minutes)
+
+You can copy `.env.example` and customize values for your deployment.
+
+Example:
+
+```bash
+JWT_SECRET="replace-with-strong-secret" npm run start:server
+```
+
+## Production hosting notes (personal site)
+
+For deployment behind your personal site/domain:
+
+1. Serve the frontend over HTTPS.
+2. Run backend on a private port (e.g., 3001).
+3. Configure reverse proxy routes:
+   - `/api/*` -> backend HTTP
+   - `/ws` -> backend WebSocket upgrade
+4. Ensure secure secret management for `JWT_SECRET`.
+
+### Nginx reverse proxy example (HTTPS + WSS)
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name yourdomain.com;
+
+  # Frontend build output
+  root /var/www/splendor/dist;
+  index index.html;
+
+  location / {
+    try_files $uri /index.html;
+  }
+
+  location /api/ {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location /ws {
+    proxy_pass http://127.0.0.1:3001/ws;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+  }
+}
+```
+
+### Caddy reverse proxy example
+
+```caddy
+yourdomain.com {
+  root * /var/www/splendor/dist
+  file_server
+  try_files {path} /index.html
+
+  reverse_proxy /api/* 127.0.0.1:3001
+  reverse_proxy /ws 127.0.0.1:3001
+}
+```
 
 ## Contributing
 

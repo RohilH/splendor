@@ -2,15 +2,34 @@ import { Box, Button, Text, VStack } from "@chakra-ui/react";
 import { useGameStore } from "../store/gameStore";
 import { useEffect, useCallback } from "react";
 import confetti from "canvas-confetti";
+import { calculatePlayerPoints } from "../../shared/game/selectors";
 
 interface VictoryScreenProps {
   onRestart: () => void;
+  players?: Array<{
+    name: string;
+    purchasedCards: Array<{ points: number }>;
+    nobles: Array<{ points: number }>;
+  }>;
+  winner?: number | null;
+  calculatePoints?: (player: {
+    purchasedCards: Array<{ points: number }>;
+    nobles: Array<{ points: number }>;
+  }) => number;
+  actionLabel?: string;
 }
 
-export const VictoryScreen = ({ onRestart }: VictoryScreenProps) => {
-  const players = useGameStore((state) => state.players);
-  const winner = useGameStore((state) => state.winner);
-  const calculatePoints = useGameStore((state) => state.calculatePoints);
+export const VictoryScreen = ({
+  onRestart,
+  players: playersProp,
+  winner: winnerProp,
+  calculatePoints = calculatePlayerPoints,
+  actionLabel = "Play Again",
+}: VictoryScreenProps) => {
+  const storePlayers = useGameStore((state) => state.players);
+  const storeWinner = useGameStore((state) => state.winner);
+  const players = playersProp ?? storePlayers;
+  const winner = winnerProp ?? storeWinner;
 
   const fireConfetti = useCallback(() => {
     const duration = 5000;
@@ -100,7 +119,7 @@ export const VictoryScreen = ({ onRestart }: VictoryScreenProps) => {
           with {totalPoints} points
         </Text>
         <Button colorScheme="purple" size="lg" onClick={onRestart}>
-          Play Again
+          {actionLabel}
         </Button>
       </VStack>
     </Box>

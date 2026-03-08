@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { GameState, GemType, Card, Player, Gems, Noble } from '../types/game';
 import { level1Cards, level2Cards, level3Cards, nobles } from '../data/gameData';
+import { calculatePlayerPoints } from '../../shared/game/selectors';
 
 // Initial gem counts based on player count
 const INITIAL_GEMS_BY_PLAYER_COUNT: Record<number, Gems> = {
@@ -40,11 +41,6 @@ const shuffleArray = <T>(array: T[]): T[] => {
     [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
   }
   return newArray;
-};
-
-const calculatePlayerPoints = (player: Player): number => {
-  return player.purchasedCards.reduce((sum, card) => sum + (card.points || 0), 0) +
-    player.nobles.reduce((sum, noble) => sum + noble.points, 0);
 };
 
 interface GameStore extends GameState {
@@ -210,7 +206,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       // Validate gem selection rules
       const selectedGemCount = Object.values(selectedGems).reduce((sum, count) => sum + (count || 0), 0);
-      const uniqueGemsSelected = Object.entries(selectedGems).filter(([_, count]) => count && count > 0).length;
+      const uniqueGemsSelected = Object.entries(selectedGems).filter(([, count]) => count && count > 0).length;
       
       // Calculate current total gems
       const totalPlayerGems = Object.values(player.gems).reduce((sum, count) => sum + count, 0);
@@ -223,7 +219,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       
       // Check if taking 2 of the same gem
       if (selectedGemCount === 2 && uniqueGemsSelected === 1) {
-        const gemType = Object.entries(selectedGems).find(([_, count]) => count === 2)?.[0] as GemType;
+        const gemType = Object.entries(selectedGems).find(([, count]) => count === 2)?.[0] as GemType;
         if (!gemType || gems[gemType] < 4) return false;
       }
       // Check if taking different gems

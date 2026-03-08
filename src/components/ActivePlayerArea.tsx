@@ -10,8 +10,10 @@ import {
   Tooltip,
 } from "@chakra-ui/react";
 import { useGameStore } from "../store/gameStore";
-import { GemType, Card } from "../types/game";
-import { useTempGemStore } from "./GemBank";
+import { GemType, Card, Player } from "../types/game";
+import { useTempGemStore } from "../store/tempGemStore";
+import { canAffordCard, countGemBonuses } from "../../shared/game/selectors";
+import type { OnlinePlayer } from "../../shared/onlineTypes";
 
 const gemImages: Record<GemType, string> = {
   diamond: "/gems/diamond.svg",
@@ -34,37 +36,20 @@ const gemColors: Record<GemType, string> = {
 interface CardSummaryProps {
   card: Card;
   onClick?: () => void;
+  canAfford?: boolean;
+  isDisabled?: boolean;
 }
 
-const CardSummary = ({ card, onClick }: CardSummaryProps) => {
+const CardSummary = ({
+  card,
+  onClick,
+  canAfford: canAffordProp,
+  isDisabled = false,
+}: CardSummaryProps) => {
   const { players, currentPlayer } = useGameStore();
   const player = players[currentPlayer];
-
-  // Check if player can afford the card
-  const canAfford = () => {
-    const totalGems = { ...player.gems };
-    // Add bonuses from purchased cards
-    player.purchasedCards.forEach((purchasedCard) => {
-      totalGems[purchasedCard.gem] = (totalGems[purchasedCard.gem] || 0) + 1;
-    });
-
-    // Check if player has enough gems
-    let goldNeeded = 0;
-    for (const [gem, cost] of Object.entries(card.cost)) {
-      const available = totalGems[gem as GemType] || 0;
-      const bonusGems = player.purchasedCards.filter(
-        (c) => c.gem === gem
-      ).length;
-      const required = Math.max(0, cost - bonusGems);
-      if (available >= required) {
-        totalGems[gem as GemType] -= required;
-      } else {
-        goldNeeded += required - available;
-        totalGems[gem as GemType] = 0;
-      }
-    }
-    return goldNeeded <= (totalGems.gold || 0);
-  };
+  const canAfford =
+    canAffordProp ?? canAffordCard(player, card, useGameStore.getState().debugMode);
 
   return (
     <Box position="relative">
@@ -101,10 +86,11 @@ const CardSummary = ({ card, onClick }: CardSummaryProps) => {
           alignItems="center"
           justifyContent="center"
           position="relative"
-          cursor={onClick && canAfford() ? "pointer" : "default"}
-          onClick={onClick && canAfford() ? onClick : undefined}
+          cursor={onClick && canAfford && !isDisabled ? "pointer" : "default"}
+          onClick={onClick && canAfford && !isDisabled ? onClick : undefined}
           border="1px solid"
           borderColor={card.gem === "diamond" ? "gray.300" : "transparent"}
+          opacity={isDisabled ? 0.7 : 1}
           _hover={{
             "& > .card-actions": {
               opacity: 1,
@@ -138,11 +124,11 @@ const CardSummary = ({ card, onClick }: CardSummaryProps) => {
             >
               <Button
                 size="xs"
-                colorScheme={canAfford() ? "blue" : "gray"}
-                isDisabled={!canAfford()}
+                colorScheme={canAfford ? "blue" : "gray"}
+                isDisabled={!canAfford || isDisabled}
                 onClick={onClick}
               >
-                {canAfford() ? "Buy" : "Can't Buy"}
+                {canAfford ? "Buy" : "Can't Buy"}
               </Button>
             </Box>
           )}
@@ -152,7 +138,35 @@ const CardSummary = ({ card, onClick }: CardSummaryProps) => {
   );
 };
 
-export const ActivePlayerArea = () => {
+interface ActivePlayerAreaProps {
+  activePlayer?: Player | OnlinePlayer;
+  selectedGems?: Record<GemType, number>;
+  onRemoveSelectedGem?: (gemType: GemType) => void;
+  onClearSelectedGems?: () => void;
+  onTakeSelectedGems?: (gems: Partial<Record<GemType, number>>) => boolean | void;
+  onEndTurn?: () => void;
+  onPurchaseReservedCard?: (cardIndex: number) => void;
+  canAffordReservedCard?: (card: Card) => boolean;
+  isGameOver?: boolean;
+  title?: string;
+  primaryActionLabel?: string;
+  isInteractionDisabled?: boolean;
+}
+
+export const ActivePlayerArea = ({
+  activePlayer: activePlayerProp,
+  selectedGems: selectedGemsProp,
+  onRemoveSelectedGem,
+  onClearSelectedGems,
+  onTakeSelectedGems,
+  onEndTurn,
+  onPurchaseReservedCard,
+  canAffordReservedCard,
+  isGameOver: isGameOverProp,
+  title,
+  primaryActionLabel,
+  isInteractionDisabled = false,
+}: ActivePlayerAreaProps = {}) => {
   const { players, currentPlayer } = useGameStore();
   const takeGems = useGameStore((state) => state.takeGems);
   const assignNoblesAndEndTurn = useGameStore(
@@ -161,44 +175,60 @@ export const ActivePlayerArea = () => {
   const purchaseReservedCard = useGameStore(
     (state) => state.purchaseReservedCard
   );
-  const isGameOver = useGameStore((state) => state.isGameOver);
-  const activePlayer = players[currentPlayer];
-  const { selectedGems, removeGem, clearGems } = useTempGemStore();
-
-  // Calculate gem bonuses from purchased cards
-  const gemBonuses = (
-    ["diamond", "sapphire", "emerald", "ruby", "onyx"] as const
-  ).reduce((acc, gem) => {
-    acc[gem] = activePlayer.purchasedCards.filter(
-      (card) => card.gem === gem
-    ).length;
-    return acc;
-  }, {} as Record<Exclude<GemType, "gold">, number>);
+  const storeIsGameOver = useGameStore((state) => state.isGameOver);
+  const { selectedGems: storeSelectedGems, removeGem, clearGems } = useTempGemStore();
+  const activePlayer = activePlayerProp ?? players[currentPlayer];
+  const selectedGems = selectedGemsProp ?? storeSelectedGems;
+  const isGameOver = isGameOverProp ?? storeIsGameOver;
+  const gemBonuses = countGemBonuses(activePlayer);
 
   const handleEndTurn = () => {
     const hasSelectedGems = Object.values(selectedGems).some(
       (count) => count > 0
     );
     if (hasSelectedGems) {
-      const success = takeGems(selectedGems);
+      const success = onTakeSelectedGems ? onTakeSelectedGems(selectedGems) : takeGems(selectedGems);
       if (success) {
-        clearGems();
-        assignNoblesAndEndTurn();
+        if (onClearSelectedGems) {
+          onClearSelectedGems();
+        } else {
+          clearGems();
+          assignNoblesAndEndTurn();
+        }
       }
+    } else if (onEndTurn) {
+      onEndTurn();
     } else {
       assignNoblesAndEndTurn();
     }
   };
 
   const handleGemClick = (gemType: GemType) => {
+    if (isInteractionDisabled) {
+      return;
+    }
+
     if (selectedGems[gemType] > 0) {
-      removeGem(gemType);
+      if (onRemoveSelectedGem) {
+        onRemoveSelectedGem(gemType);
+      } else {
+        removeGem(gemType);
+      }
     }
   };
 
-  const handleReservedCardClick = (card: Card, index: number) => {
+  const handleReservedCardClick = (index: number) => {
+    if (isInteractionDisabled) {
+      return;
+    }
+
+    if (onPurchaseReservedCard) {
+      onPurchaseReservedCard(index);
+      return;
+    }
+
     const success = purchaseReservedCard(index);
-    if (success) {
+    if (success && !onPurchaseReservedCard) {
       handleEndTurn();
     }
   };
@@ -210,6 +240,12 @@ export const ActivePlayerArea = () => {
       displayGems[gem as GemType] = (displayGems[gem as GemType] || 0) + count;
     }
   });
+
+  const hasSelectedGems = Object.values(selectedGems).some((count) => count > 0);
+  const resolvedTitle = title ?? `Player ${activePlayer.id + 1}'s Turn`;
+  const resolvedActionLabel =
+    primaryActionLabel ?? (hasSelectedGems ? "Take Gems & End Turn" : "End Turn");
+  const resolvedInteractionDisabled = isGameOver || isInteractionDisabled;
 
   return (
     <Box
@@ -224,7 +260,7 @@ export const ActivePlayerArea = () => {
       <HStack justify="space-between" align="start" spacing={6}>
         <VStack align="start" spacing={3} flex={1}>
           <Text fontSize="lg" fontWeight="bold" color="blue.600">
-            Player {activePlayer.id + 1}'s Turn
+            {resolvedTitle}
           </Text>
 
           <HStack spacing={6} w="100%" align="start">
@@ -239,7 +275,11 @@ export const ActivePlayerArea = () => {
                     <VStack
                       key={gem}
                       spacing={1}
-                      cursor={selectedGems[gem] > 0 ? "pointer" : "default"}
+                      cursor={
+                        selectedGems[gem] > 0 && !resolvedInteractionDisabled
+                          ? "pointer"
+                          : "default"
+                      }
                       onClick={() => handleGemClick(gem)}
                       position="relative"
                       opacity={selectedGems[gem] > 0 ? 1 : 0.7}
@@ -295,7 +335,13 @@ export const ActivePlayerArea = () => {
                   <CardSummary
                     key={index}
                     card={card}
-                    onClick={() => handleReservedCardClick(card, index)}
+                    onClick={() => handleReservedCardClick(index)}
+                    canAfford={
+                      canAffordReservedCard
+                        ? canAffordReservedCard(card)
+                        : undefined
+                    }
+                    isDisabled={resolvedInteractionDisabled}
                   />
                 ))}
               </HStack>
@@ -307,11 +353,9 @@ export const ActivePlayerArea = () => {
           colorScheme="blue"
           size="lg"
           onClick={handleEndTurn}
-          isDisabled={isGameOver}
+          isDisabled={resolvedInteractionDisabled}
         >
-          {Object.values(selectedGems).some((count) => count > 0)
-            ? "Take Gems & End Turn"
-            : "End Turn"}
+          {resolvedActionLabel}
         </Button>
       </HStack>
     </Box>

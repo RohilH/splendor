@@ -46,8 +46,13 @@ const NobleCard = ({ noble }: { noble: Noble }) => (
   </Box>
 );
 
-export const NobleArea = () => {
-  const nobles = useGameStore((state) => state.nobles);
+interface NobleAreaProps {
+  nobles?: Noble[];
+}
+
+export const NobleArea = ({ nobles: noblesProp }: NobleAreaProps) => {
+  const storeNobles = useGameStore((state) => state.nobles);
+  const nobles = noblesProp ?? storeNobles;
   const nobleCount = nobles.length;
 
   return (

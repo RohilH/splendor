@@ -3,7 +3,6 @@ import { useGameStore } from '../gameStore';
 import { Card, Noble, GemType } from '../../types/game';
 
 const store = () => useGameStore.getState();
-const act = (fn: () => void) => fn();
 
 function initGame(numPlayers = 2, names?: string[], debug = false) {
   const playerNames = names ?? Array.from({ length: numPlayers }, (_, i) => `P${i + 1}`);
