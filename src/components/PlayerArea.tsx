@@ -1,4 +1,4 @@
-import { Box, HStack, Text, VStack, SimpleGrid } from "@chakra-ui/react";
+import { Box, HStack, Text, VStack, SimpleGrid, Badge } from "@chakra-ui/react";
 import { countGemBonuses, calculatePlayerPoints } from "../../shared/game/selectors";
 import type { PlayerPointView } from "../../shared/game/selectors";
 import { Player, GemType } from "../types/game";
@@ -6,6 +6,7 @@ import { Player, GemType } from "../types/game";
 interface PlayerAreaProps {
   player: Player;
   isActive: boolean;
+  isCpu?: boolean;
   calculatePoints?: (player: PlayerPointView) => number;
 }
 
@@ -22,6 +23,7 @@ const bankGemColors: Record<GemType, { bg: string; border: string }> = {
 export const PlayerArea = ({
   player,
   isActive,
+  isCpu = false,
   calculatePoints = calculatePlayerPoints,
 }: PlayerAreaProps) => {
   const totalPoints = calculatePoints(player);
@@ -46,9 +48,16 @@ export const PlayerArea = ({
           spacing={2}
           justify="space-between"
         >
-          <Text fontSize="md" fontWeight="bold">
-            {player.name}
-          </Text>
+          <HStack spacing={1}>
+            <Text fontSize="md" fontWeight="bold">
+              {player.name}
+            </Text>
+            {isCpu && (
+              <Badge colorScheme="blue" fontSize="xs" variant="subtle">
+                🤖
+              </Badge>
+            )}
+          </HStack>
           <Text fontSize="md" fontWeight="bold">
             {totalPoints}
           </Text>
