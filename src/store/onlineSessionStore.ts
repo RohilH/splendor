@@ -4,6 +4,8 @@ import type {
   ClientToServerMessage,
   ServerToClientMessage,
 } from "../../shared/protocol/wsMessages";
+import { postJson } from "../network/httpClient";
+import { getSocketUrl } from "../network/runtimeConfig";
 import { WsClient } from "../network/wsClient";
 
 type ConnectionStatus =
@@ -51,11 +53,6 @@ const wsClient = new WsClient();
 const STORAGE_KEY = "splendor-online-session";
 const HEARTBEAT_INTERVAL_MS = 15000;
 
-const getSocketUrl = (): string => {
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  return `${protocol}://${window.location.host}/ws`;
-};
-
 const persistSession = (token: string | null, user: AuthUser | null): void => {
   if (!token || !user) {
     localStorage.removeItem(STORAGE_KEY);
@@ -63,27 +60,6 @@ const persistSession = (token: string | null, user: AuthUser | null): void => {
   }
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, user }));
-};
-
-const createApiClient = async <T>(
-  path: string,
-  body: Record<string, unknown>
-): Promise<T> => {
-  const response = await fetch(path, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const json = (await response.json()) as { message?: string } & T;
-
-  if (!response.ok) {
-    throw new Error(json.message || "Request failed.");
-  }
-
-  return json;
 };
 
 const sendOverSocket = (message: ClientToServerMessage): void => {
@@ -131,8 +107,11 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
   }
 
   set({ status: "connecting", error: null });
+  const socketUrl = getSocketUrl();
+  console.info(`[online] connecting websocket ${socketUrl}`);
   wsClient.setHandlers({
     onOpen: () => {
+      console.info("[online] websocket connected");
       set({ status: "connected" });
       sendOverSocket({ type: "auth", token });
     },
@@ -196,10 +175,23 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
           break;
       }
     },
-    onClose: () => {
+    onError: () => {
+      console.warn("[online] websocket connection error");
+      set({
+        error: "Unable to reach the multiplayer server. Check the backend deployment and websocket URL.",
+      });
+    },
+    onClose: (event) => {
       const shouldReconnect = Boolean(get().token);
       stopHeartbeat();
-      set({ status: "disconnected" });
+      console.info(`[online] websocket closed (code ${event.code})`);
+      set({
+        status: "disconnected",
+        error:
+          shouldReconnect && event.code !== 1000
+            ? "Connection to the multiplayer server was lost. Retrying..."
+            : get().error,
+      });
 
       if (shouldReconnect) {
         reconnectTimer = setTimeout(() => {
@@ -265,7 +257,8 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
 
   register: async (username, password) => {
     try {
-      const auth = await createApiClient<AuthResponse>("/api/auth/register", {
+      console.info("[online] registering user");
+      const auth = await postJson<AuthResponse>("/api/auth/register", {
         username,
         password,
       });
@@ -280,6 +273,7 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
       connectSocket(set, get);
       return true;
     } catch (error) {
+      console.warn("[online] registration failed", error);
       set({
         error: error instanceof Error ? error.message : "Registration failed.",
       });
@@ -289,7 +283,8 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
 
   login: async (username, password) => {
     try {
-      const auth = await createApiClient<AuthResponse>("/api/auth/login", {
+      console.info("[online] logging in user");
+      const auth = await postJson<AuthResponse>("/api/auth/login", {
         username,
         password,
       });
@@ -304,6 +299,7 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
       connectSocket(set, get);
       return true;
     } catch (error) {
+      console.warn("[online] login failed", error);
       set({
         error: error instanceof Error ? error.message : "Login failed.",
       });

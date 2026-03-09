@@ -1,6 +1,10 @@
+import { parseAllowedOrigins } from "../http/originPolicy";
+
 interface EnvConfig {
   port: number;
   jwtSecret: string;
+  allowedOrigins: string[];
+  requestLoggingEnabled: boolean;
   wsHeartbeatIntervalMs: number;
   staleRoomCleanupIntervalMs: number;
   reconnectGraceMs: number;
@@ -24,9 +28,28 @@ const parseNumber = (
   return parsed;
 };
 
+const parseBoolean = (input: string | undefined, fallback: boolean): boolean => {
+  if (!input) {
+    return fallback;
+  }
+
+  const normalized = input.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+};
+
 const loadEnvConfig = (): EnvConfig => ({
   port: parseNumber(process.env.PORT, 3001, 1),
   jwtSecret: process.env.JWT_SECRET || "dev-only-secret-change-me",
+  allowedOrigins: parseAllowedOrigins(process.env.ALLOWED_ORIGINS),
+  requestLoggingEnabled: parseBoolean(process.env.REQUEST_LOGGING_ENABLED, true),
   wsHeartbeatIntervalMs: parseNumber(process.env.WS_HEARTBEAT_INTERVAL_MS, 15000, 1000),
   staleRoomCleanupIntervalMs: parseNumber(
     process.env.STALE_ROOM_CLEANUP_INTERVAL_MS,

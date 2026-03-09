@@ -4,6 +4,7 @@ import { AuthService } from "../auth/authService";
 import { RoomManager } from "../game/roomManager";
 import type { ClientToServerMessage, ServerToClientMessage } from "../../shared/protocol/wsMessages";
 import { routeSocketMessage, type SocketSession } from "./messageRouter";
+import { isOriginAllowed } from "../http/originPolicy";
 
 const safeSend = (socket: WebSocket, message: ServerToClientMessage): void => {
   if (socket.readyState === 1) {
@@ -14,12 +15,22 @@ const safeSend = (socket: WebSocket, message: ServerToClientMessage): void => {
 export const attachWebSocketServer = (
   httpServer: HttpServer,
   authService: AuthService,
-  roomManager: RoomManager
+  roomManager: RoomManager,
+  options: {
+    allowedOrigins: string[];
+  }
 ): void => {
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
   const socketSessions = new WeakMap<WebSocket, SocketSession>();
 
-  wss.on("connection", (socket) => {
+  wss.on("connection", (socket, request) => {
+    const origin = request.headers.origin;
+    if (!isOriginAllowed(origin, options.allowedOrigins)) {
+      console.warn(`[ws] rejected websocket origin: ${origin ?? "unknown"}`);
+      socket.close(1008, "Origin not allowed.");
+      return;
+    }
+
     socket.on("message", async (rawMessage) => {
       let parsedMessage: ClientToServerMessage;
 
