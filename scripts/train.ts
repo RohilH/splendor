@@ -1,8 +1,8 @@
 /**
  * DQN Training Script for Splendor RL Agent
  *
- * Trains a neural network via self-play using Deep Q-Learning.
- * Optimized for speed: smaller network, efficient training loop.
+ * Trains against the heuristic agent (not self-play) so the RL agent
+ * learns strategies effective against strong play.
  *
  * Usage: npx tsx scripts/train.ts
  */
@@ -12,29 +12,32 @@ import type { GameServerState } from "../shared/game/engine";
 import { calculatePlayerPoints } from "../shared/game/selectors";
 import { extractFeatures } from "../shared/ai/features";
 import { enumerateValidActions } from "../shared/ai/actionEnumerator";
-import { NeuralNetwork, type SerializedWeights } from "../shared/ai/neuralNetwork";
+import { NeuralNetwork } from "../shared/ai/neuralNetwork";
 import { NUM_ACTION_SLOTS, NUM_FEATURES } from "../shared/ai/types";
 import { HeuristicAgent } from "../shared/ai/heuristicAgent";
+import { RandomAgent } from "../shared/ai/randomAgent";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ─── Hyperparameters ───────────────────────────────────────────────
 const HIDDEN_SIZE = 64;
-const NUM_GAMES = 30_000;
+const NUM_GAMES = 20_000;
 const BUFFER_SIZE = 20_000;
 const BATCH_SIZE = 16;
 const LEARNING_RATE = 0.001;
 const GAMMA = 0.95;
-const EPSILON_START = 1.0;
-const EPSILON_END = 0.08;
-const EPSILON_DECAY_GAMES = 20_000;
-const TARGET_UPDATE_GAMES = 200;
-const TRAIN_EVERY_GAMES = 1; // train after every game
-const TRAIN_STEPS_PER_GAME = 8; // number of batch samples per game
-const MIN_BUFFER_TO_TRAIN = 500;
-const MAX_TURNS_PER_GAME = 200;
-const LOG_EVERY = 1_000;
-const CHECKPOINT_EVERY = 10_000;
+const EPSILON_START = 0.9;
+const EPSILON_END = 0.05;
+const EPSILON_DECAY_GAMES = 12_000;
+const TARGET_UPDATE_GAMES = 100;
+const TRAIN_STEPS_PER_GAME = 6;
+const MIN_BUFFER = 500;
+const MAX_TURNS = 200;
+const LOG_EVERY = 500;
 
 // ─── Experience replay buffer ──────────────────────────────────────
 interface Experience {
@@ -46,64 +49,49 @@ interface Experience {
 }
 
 class ReplayBuffer {
-  private buffer: Experience[] = [];
+  private buf: Experience[] = [];
   private pos = 0;
-
-  constructor(private maxSize: number) {}
-
-  push(exp: Experience): void {
-    if (this.buffer.length < this.maxSize) {
-      this.buffer.push(exp);
-    } else {
-      this.buffer[this.pos] = exp;
-    }
-    this.pos = (this.pos + 1) % this.maxSize;
+  constructor(private max: number) {}
+  push(e: Experience) {
+    if (this.buf.length < this.max) this.buf.push(e);
+    else this.buf[this.pos] = e;
+    this.pos = (this.pos + 1) % this.max;
   }
-
-  sample(batchSize: number): Experience[] {
-    const batch: Experience[] = [];
-    for (let i = 0; i < batchSize; i++) {
-      batch.push(this.buffer[Math.floor(Math.random() * this.buffer.length)]);
-    }
-    return batch;
+  sample(n: number): Experience[] {
+    const b: Experience[] = [];
+    for (let i = 0; i < n; i++)
+      b.push(this.buf[Math.floor(Math.random() * this.buf.length)]);
+    return b;
   }
-
-  get size(): number {
-    return this.buffer.length;
-  }
+  get size() { return this.buf.length; }
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────
+const uid = (i: number) => `t-${i}`;
+const heuristic = new HeuristicAgent();
+const random = new RandomAgent();
 
-const uid = (i: number): string => `t-${i}`;
-
-const createGame = (): GameServerState =>
+const createGame = () =>
   createInitialGameState([
-    { userId: uid(0), name: "A0" },
-    { userId: uid(1), name: "A1" },
+    { userId: uid(0), name: "RL" },
+    { userId: uid(1), name: "Opp" },
   ]);
 
-// ─── Main training loop ────────────────────────────────────────────
-
+// ─── Main ──────────────────────────────────────────────────────────
 const main = () => {
   console.log("═══════════════════════════════════════════════════");
-  console.log("  Splendor DQN Training");
-  console.log(`  Games: ${NUM_GAMES.toLocaleString()}`);
-  console.log(`  Network: [${NUM_FEATURES}, ${HIDDEN_SIZE}, ${NUM_ACTION_SLOTS}]`);
+  console.log("  Splendor DQN Training (vs Heuristic)");
+  console.log(`  Games: ${NUM_GAMES.toLocaleString()}, Net: [${NUM_FEATURES}, ${HIDDEN_SIZE}, ${NUM_ACTION_SLOTS}]`);
   console.log("═══════════════════════════════════════════════════\n");
 
-  // Smaller network: just one hidden layer for speed
   const onlineNet = new NeuralNetwork([NUM_FEATURES, HIDDEN_SIZE, NUM_ACTION_SLOTS]);
   const targetNet = onlineNet.clone();
   const buffer = new ReplayBuffer(BUFFER_SIZE);
 
-  let recentWins = [0, 0];
-  let recentLoss = 0;
-  let recentLossCount = 0;
-  let recentTurns = 0;
-  let recentGames = 0;
-
-  const startTime = Date.now();
+  let wins = 0, losses = 0, draws = 0;
+  let totalLoss = 0, lossCount = 0;
+  let totalTurns = 0;
+  const t0 = Date.now();
 
   for (let game = 0; game < NUM_GAMES; game++) {
     const epsilon = Math.max(
@@ -111,10 +99,14 @@ const main = () => {
       EPSILON_START - (EPSILON_START - EPSILON_END) * (game / EPSILON_DECAY_GAMES),
     );
 
+    // Alternate opponent: 70% heuristic, 30% random for diversity
+    const useHeuristic = Math.random() < 0.7;
+
     let gs = createGame();
     let turns = 0;
+    let prevRlPoints = 0;
 
-    while (!gs.isGameOver && turns < MAX_TURNS_PER_GAME) {
+    while (!gs.isGameOver && turns < MAX_TURNS) {
       const pi = gs.currentPlayer;
 
       if (gs.pendingNobleSelectionPlayerId) {
@@ -123,123 +115,136 @@ const main = () => {
         continue;
       }
 
-      const features = extractFeatures(gs, pi);
-      const validActions = enumerateValidActions(gs, pi);
-      const nonPass = validActions.filter((a) => a.action.type !== "end_turn");
-      const candidates = nonPass.length > 0 ? nonPass : validActions;
+      if (pi === 0) {
+        // RL agent's turn
+        const features = extractFeatures(gs, 0);
+        const valid = enumerateValidActions(gs, 0);
+        const nonPass = valid.filter(a => a.action.type !== "end_turn");
+        const candidates = nonPass.length > 0 ? nonPass : valid;
 
-      // Epsilon-greedy
-      let pick;
-      if (Math.random() < epsilon) {
-        pick = candidates[Math.floor(Math.random() * candidates.length)];
-      } else {
-        const qValues = onlineNet.forward(features);
-        let bestQ = -Infinity;
-        pick = candidates[0];
-        for (const va of candidates) {
-          if (qValues[va.slotIndex] > bestQ) {
-            bestQ = qValues[va.slotIndex];
-            pick = va;
+        let pick;
+        if (Math.random() < epsilon) {
+          // Blend: 50% random, 50% heuristic-guided exploration
+          if (Math.random() < 0.5) {
+            pick = candidates[Math.floor(Math.random() * candidates.length)];
+          } else {
+            const hAction = heuristic.pickAction(gs, 0);
+            pick = candidates.find(c => 
+              c.action.type === hAction.type
+            ) || candidates[Math.floor(Math.random() * candidates.length)];
+          }
+        } else {
+          const qValues = onlineNet.forward(features);
+          let bestQ = -Infinity;
+          pick = candidates[0];
+          for (const va of candidates) {
+            if (qValues[va.slotIndex] > bestQ) {
+              bestQ = qValues[va.slotIndex];
+              pick = va;
+            }
           }
         }
+
+        prevRlPoints = calculatePlayerPoints(gs.players[0]);
+        const result = applyGameAction(gs, uid(0), pick.action);
+
+        if (result.error) {
+          const fb = applyGameAction(gs, uid(0), { type: "end_turn" });
+          if (!fb.error) gs = fb.state;
+          turns++;
+          continue;
+        }
+
+        const newGs = result.state;
+        const newPoints = calculatePlayerPoints(newGs.players[0]);
+        const pointsGained = newPoints - prevRlPoints;
+
+        // Rich reward function
+        let reward = 0;
+        reward += pointsGained * 0.2;
+        if (newGs.players[0].purchasedCards.length > gs.players[0].purchasedCards.length) {
+          reward += 0.1; // bought a card
+        }
+        if (newGs.players[0].nobles.length > gs.players[0].nobles.length) {
+          reward += 0.3; // got a noble
+        }
+        if (newGs.isGameOver) {
+          reward += newGs.winner === 0 ? 2.0 : -2.0;
+        }
+
+        buffer.push({
+          state: features,
+          actionSlot: pick.slotIndex,
+          reward,
+          nextState: extractFeatures(newGs, 0),
+          done: newGs.isGameOver,
+        });
+
+        gs = newGs;
+      } else {
+        // Opponent's turn (heuristic or random)
+        const action = useHeuristic
+          ? heuristic.pickAction(gs, 1)
+          : random.pickAction(gs, 1);
+        const result = applyGameAction(gs, uid(1), action);
+        if (result.error) {
+          const fb = applyGameAction(gs, uid(1), { type: "end_turn" });
+          if (!fb.error) gs = fb.state;
+        } else {
+          gs = result.state;
+        }
       }
-
-      const prevPoints = calculatePlayerPoints(gs.players[pi]);
-      const result = applyGameAction(gs, uid(pi), pick.action);
-
-      if (result.error) {
-        const fb = applyGameAction(gs, uid(pi), { type: "end_turn" });
-        if (!fb.error) gs = fb.state;
-        turns++;
-        continue;
-      }
-
-      const newGs = result.state;
-      const newPoints = calculatePlayerPoints(newGs.players[pi]);
-
-      let reward = (newPoints - prevPoints) * 0.15;
-      if (newGs.players[pi].purchasedCards.length > gs.players[pi].purchasedCards.length) {
-        reward += 0.05;
-      }
-      if (newGs.isGameOver) {
-        reward += newGs.winner === pi ? 1.0 : -1.0;
-      }
-
-      buffer.push({
-        state: features,
-        actionSlot: pick.slotIndex,
-        reward,
-        nextState: extractFeatures(newGs, pi),
-        done: newGs.isGameOver,
-      });
-
-      gs = newGs;
       turns++;
     }
 
+    totalTurns += turns;
     if (gs.isGameOver && gs.winner !== null) {
-      recentWins[gs.winner]++;
+      if (gs.winner === 0) wins++;
+      else losses++;
+    } else {
+      draws++;
     }
-    recentTurns += turns;
-    recentGames++;
 
-    // Train after each game
-    if (game % TRAIN_EVERY_GAMES === 0 && buffer.size >= MIN_BUFFER_TO_TRAIN) {
+    // Train
+    if (buffer.size >= MIN_BUFFER) {
       for (let s = 0; s < TRAIN_STEPS_PER_GAME; s++) {
         const batch = buffer.sample(BATCH_SIZE);
-        let batchLoss = 0;
-
+        let bLoss = 0;
         for (const exp of batch) {
-          let targetQ: number;
+          let tq: number;
           if (exp.done) {
-            targetQ = exp.reward;
+            tq = exp.reward;
           } else {
-            const nextQ = targetNet.forward(exp.nextState);
-            targetQ = exp.reward + GAMMA * Math.max(...nextQ);
+            const nq = targetNet.forward(exp.nextState);
+            tq = exp.reward + GAMMA * Math.max(...nq);
           }
           const targets = new Map<number, number>();
-          targets.set(exp.actionSlot, targetQ);
-          batchLoss += onlineNet.trainStep(exp.state, targets, LEARNING_RATE);
+          targets.set(exp.actionSlot, tq);
+          bLoss += onlineNet.trainStep(exp.state, targets, LEARNING_RATE);
         }
-        recentLoss += batchLoss / BATCH_SIZE;
-        recentLossCount++;
+        totalLoss += bLoss / BATCH_SIZE;
+        lossCount++;
       }
     }
 
-    // Update target network
     if ((game + 1) % TARGET_UPDATE_GAMES === 0) {
       targetNet.setWeights(onlineNet.getWeights());
     }
 
-    // Logging
     if ((game + 1) % LOG_EVERY === 0) {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      const avgLen = recentGames > 0 ? (recentTurns / recentGames).toFixed(0) : "0";
-      const avgLoss = recentLossCount > 0 ? (recentLoss / recentLossCount).toFixed(4) : "N/A";
-      const totalW = recentWins[0] + recentWins[1];
-      const p0 = totalW > 0 ? ((recentWins[0] / totalW) * 100).toFixed(1) : "N/A";
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(0);
+      const avgTurns = (totalTurns / LOG_EVERY).toFixed(0);
+      const avgLoss = lossCount > 0 ? (totalLoss / lossCount).toFixed(4) : "N/A";
+      const winRate = ((wins / (wins + losses + draws)) * 100).toFixed(1);
 
       console.log(
-        `G ${String(game + 1).padStart(6)} | ε=${epsilon.toFixed(3)} | ` +
-        `Loss=${avgLoss.padStart(8)} | Turns=${avgLen.padStart(3)} | ` +
-        `P0=${p0.padStart(5)}% | Buf=${buffer.size} | ${elapsed}s`,
+        `G ${String(game + 1).padStart(5)} | ε=${epsilon.toFixed(3)} | ` +
+        `Loss=${avgLoss.padStart(8)} | Turns=${avgTurns.padStart(3)} | ` +
+        `Win=${winRate.padStart(5)}% (${wins}W/${losses}L/${draws}D) | ${elapsed}s`,
       );
-
-      recentWins = [0, 0];
-      recentLoss = 0;
-      recentLossCount = 0;
-      recentTurns = 0;
-      recentGames = 0;
-    }
-
-    if ((game + 1) % CHECKPOINT_EVERY === 0) {
-      const dir = path.join(__dirname, "..", "shared", "ai", "checkpoints");
-      fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(
-        path.join(dir, `weights_${game + 1}.json`),
-        JSON.stringify(onlineNet.getWeights()),
-      );
-      console.log(`  → Checkpoint saved`);
+      wins = losses = draws = 0;
+      totalLoss = lossCount = 0;
+      totalTurns = 0;
     }
   }
 
@@ -249,97 +254,76 @@ const main = () => {
   console.log("═══════════════════════════════════════════════════\n");
 
   const trainedWeights = onlineNet.getWeights();
-  const evalGames = 500;
-  const heuristic = new HeuristicAgent();
+  const N = 300;
 
   const evaluate = (
     oppName: string,
     oppPlay: (gs: GameServerState) => ReturnType<typeof enumerateValidActions>[number]["action"],
   ) => {
-    let rlW = 0, oppW = 0, draw = 0;
-
-    for (let g = 0; g < evalGames; g++) {
+    let rlW = 0, oppW = 0;
+    for (let g = 0; g < N; g++) {
       let gs = createInitialGameState([
         { userId: "rl", name: "RL" },
         { userId: "opp", name: oppName },
       ]);
       let t = 0;
-
-      while (!gs.isGameOver && t < MAX_TURNS_PER_GAME) {
+      while (!gs.isGameOver && t < MAX_TURNS) {
         const pi = gs.currentPlayer;
-        const actorId = pi === 0 ? "rl" : "opp";
-
+        const aid = pi === 0 ? "rl" : "opp";
         if (gs.pendingNobleSelectionPlayerId) {
-          const r = applyGameAction(gs, actorId, { type: "select_noble", nobleIndex: 0 });
+          const r = applyGameAction(gs, aid, { type: "select_noble", nobleIndex: 0 });
           if (!r.error) gs = r.state;
           continue;
         }
-
         let action;
         if (pi === 0) {
-          const features = extractFeatures(gs, 0);
-          const qValues = onlineNet.forward(features);
+          const feat = extractFeatures(gs, 0);
+          const q = onlineNet.forward(feat);
           const valid = enumerateValidActions(gs, 0);
-          const nonPass = valid.filter((a) => a.action.type !== "end_turn");
-          const cands = nonPass.length > 0 ? nonPass : valid;
-          let bestQ = -Infinity, bestA = cands[0];
-          for (const va of cands) {
-            if (qValues[va.slotIndex] > bestQ) { bestQ = qValues[va.slotIndex]; bestA = va; }
-          }
-          action = bestA.action;
+          const np = valid.filter(a => a.action.type !== "end_turn");
+          const cands = np.length > 0 ? np : valid;
+          let bQ = -Infinity, bA = cands[0];
+          for (const v of cands) { if (q[v.slotIndex] > bQ) { bQ = q[v.slotIndex]; bA = v; } }
+          action = bA.action;
         } else {
           action = oppPlay(gs);
         }
-
-        const result = applyGameAction(gs, actorId, action);
-        if (result.error) {
-          const fb = applyGameAction(gs, actorId, { type: "end_turn" });
+        const r = applyGameAction(gs, aid, action);
+        if (r.error) {
+          const fb = applyGameAction(gs, aid, { type: "end_turn" });
           if (!fb.error) gs = fb.state;
-        } else {
-          gs = result.state;
-        }
+        } else gs = r.state;
         t++;
       }
-
       if (gs.isGameOver && gs.winner !== null) {
         if (gs.winner === 0) rlW++; else oppW++;
-      } else {
-        draw++;
       }
     }
-
-    console.log(`  RL vs ${oppName} (${evalGames} games): RL=${rlW} (${((rlW / evalGames) * 100).toFixed(1)}%), Opp=${oppW} (${((oppW / evalGames) * 100).toFixed(1)}%)${draw > 0 ? `, Draws=${draw}` : ""}`);
+    console.log(`  RL vs ${oppName} (${N} games): RL=${rlW} (${((rlW / N) * 100).toFixed(1)}%), Opp=${oppW} (${((oppW / N) * 100).toFixed(1)}%)`);
     return { rlW, oppW };
   };
 
-  const randomResult = evaluate("Random", (gs) => {
-    const valid = enumerateValidActions(gs, 1);
-    const np = valid.filter((a) => a.action.type !== "end_turn");
-    const c = np.length > 0 ? np : valid;
-    return c[Math.floor(Math.random() * c.length)].action;
-  });
+  const rr = evaluate("Random", gs => random.pickAction(gs, 1));
+  const hr = evaluate("Heuristic", gs => heuristic.pickAction(gs, 1));
 
-  const heuristicResult = evaluate("Heuristic", (gs) => heuristic.pickAction(gs, 1));
-
-  // ─── Save final weights ──────────────────────────────────────────
-  const weightsFilePath = path.join(__dirname, "..", "shared", "ai", "trainedWeights.ts");
-  const fileContent = `import type { SerializedWeights } from "./neuralNetwork";
+  // Save weights
+  const wp = path.join(__dirname, "..", "shared", "ai", "trainedWeights.ts");
+  fs.writeFileSync(wp, `import type { SerializedWeights } from "./neuralNetwork";
 
 /**
  * Pre-trained DQN weights for the Hard difficulty RL agent.
  * Generated by scripts/train.ts — do not edit manually.
  *
  * Network: [${NUM_FEATURES}, ${HIDDEN_SIZE}, ${NUM_ACTION_SLOTS}]
- * Training: ${NUM_GAMES.toLocaleString()} self-play games
- * RL vs Random: ${randomResult.rlW}/${evalGames} (${((randomResult.rlW / evalGames) * 100).toFixed(1)}%)
- * RL vs Heuristic: ${heuristicResult.rlW}/${evalGames} (${((heuristicResult.rlW / evalGames) * 100).toFixed(1)}%)
+ * Training: ${NUM_GAMES.toLocaleString()} games vs heuristic/random mix
+ * RL vs Random: ${rr.rlW}/${N} (${((rr.rlW / N) * 100).toFixed(1)}%)
+ * RL vs Heuristic: ${hr.rlW}/${N} (${((hr.rlW / N) * 100).toFixed(1)}%)
  */
 export const TRAINED_WEIGHTS: SerializedWeights = ${JSON.stringify(trainedWeights)};
-`;
+`);
 
-  fs.writeFileSync(weightsFilePath, fileContent);
-  console.log(`\n  ✅ Weights saved to shared/ai/trainedWeights.ts`);
-  console.log(`  Total time: ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+  console.log(`\n  ✅ Weights saved`);
+  console.log(`  Total: ${((Date.now() - t0) / 1000).toFixed(0)}s`);
   console.log("═══════════════════════════════════════════════════\n");
 };
 
