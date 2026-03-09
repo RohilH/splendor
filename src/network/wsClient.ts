@@ -5,7 +5,7 @@ import type {
 
 interface WsClientHandlers {
   onOpen?: () => void;
-  onClose?: () => void;
+  onClose?: (event: CloseEvent) => void;
   onError?: (error: Event) => void;
   onMessage?: (message: ServerToClientMessage) => void;
 }
@@ -35,17 +35,18 @@ export class WsClient {
         const parsed = JSON.parse(event.data) as ServerToClientMessage;
         this.handlers.onMessage?.(parsed);
       } catch {
-        // Ignore malformed payloads.
+        console.warn("[ws] ignoring malformed message payload");
       }
     };
 
     socket.onerror = (error) => {
+      console.warn("[ws] socket error");
       this.handlers.onError?.(error);
     };
 
-    socket.onclose = () => {
+    socket.onclose = (event) => {
       this.socket = null;
-      this.handlers.onClose?.();
+      this.handlers.onClose?.(event);
     };
   }
 

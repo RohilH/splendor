@@ -2,38 +2,38 @@
 
 A web-based implementation of Splendor with:
 
-- **Local pass-and-play mode**
-- **Online multiplayer mode (2-4 players)**
-- **Account-based authentication**
-- **Real-time gameplay over WebSockets**
+- local pass-and-play mode
+- online multiplayer mode for 2-4 players
+- account-based authentication
+- real-time gameplay over WebSockets
 
 Built with React, TypeScript, Chakra UI, Zustand, Express, and `ws`.
 
-## Quick Start
+## Local Development
 
-1. Install dependencies:
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Start client + multiplayer backend together:
+Run the frontend and multiplayer backend together:
 
 ```bash
 npm run dev
 ```
 
-3. Open the app:
+Open:
 
 ```text
 http://localhost:5173
 ```
 
-4. Choose **Play Online Multiplayer**, register two different accounts in two browser windows, create/join room, and start game.
+Then choose **Play Online Multiplayer**, register two users in separate browser windows, create or join a room, and start the game.
 
-## Running services separately
+### Running services separately
 
-Backend only:
+Backend in watch mode:
 
 ```bash
 npm run dev:server
@@ -45,171 +45,181 @@ Frontend only:
 npm run dev:client
 ```
 
-Typecheck backend code:
+Production-style backend start:
+
+```bash
+npm run start:server
+```
+
+Typecheck the backend:
 
 ```bash
 npm run typecheck:server
 ```
 
-## Game Rules
-
-Splendor is a game of Renaissance merchants racing to build the most prestigious jewelry business. Players compete to build the most profitable and prestigious business by:
-
-- Collecting gems (tokens)
-- Purchasing development cards
-- Attracting noble patrons
-
-### Basic Gameplay
-
-On your turn, you can perform one of these actions:
-
-1. Take up to three gems of different colors
-2. Take two gems of the same color (if there are at least 4 available)
-3. Purchase a development card using your gems
-4. Reserve a development card and take a gold token (joker)
-
-### Development Cards
-
-- Cards provide permanent gem bonuses for future purchases
-- Cards are worth prestige points
-- There are three levels of cards (1, 2, and 3)
-
-### Nobles
-
-- Nobles are worth 3 prestige points
-- They automatically visit a player who meets their requirements
-- Requirements are based on owned development cards
-
-### Winning
-
-The game ends when a player reaches 15 prestige points. Complete the current round so all players have the same number of turns.
-
 ## Testing
 
-Run unit tests (Vitest):
+Run unit tests:
 
 ```bash
 npm test
 ```
 
 Run unit tests in watch mode:
+
 ```bash
 npm run test:watch
 ```
 
-Run E2E tests (Puppeteer — requires the dev server to be running):
+Run browser E2E:
+
 ```bash
 npm run dev &
 node e2e.test.mjs
 ```
 
-Run online multiplayer E2E (2 browser clients, auth + room + gameplay turn sync):
+Run online multiplayer E2E:
+
 ```bash
 npm run dev &
 npm run test:online:e2e
 ```
 
-Generate side-by-side demo video frames + MP4 artifact for online flow:
+Generate the multiplayer demo video:
+
 ```bash
 npm run dev &
 npm run demo:online:video
 ```
 
-## Authentication + Multiplayer Architecture
+## Online Architecture
 
-- `POST /api/auth/register` — create account
-- `POST /api/auth/login` — login
-- `GET /api/auth/me` — fetch current user
-- `WS /ws` — authenticated websocket channel for:
-  - room creation/join/leave/start
-  - gameplay action submissions
-  - real-time room/game state broadcasts
+HTTP endpoints:
 
-The server is authoritative for move validation and turn progression. Clients submit actions and receive canonical game snapshots.
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `GET /api/health`
 
-## Environment variables
+WebSocket endpoint:
 
-Optional (recommended in production):
+- `WS /ws`
 
-- `PORT` (default: `3001`)
-- `JWT_SECRET` (default fallback exists for local dev only)
-- `WS_HEARTBEAT_INTERVAL_MS` (default: `15000`)
-- `STALE_ROOM_CLEANUP_INTERVAL_MS` (default: `30000`)
-- `RECONNECT_GRACE_MS` (default: `900000`, 15 minutes)
-- `IDLE_ROOM_TTL_MS` (default: `120000`, 2 minutes)
+The server is authoritative for room state, move validation, and turn progression. That means the backend must run as a long-lived Node process. The current implementation keeps room state in memory and stores users in a file, so it is not a good fit for a serverless backend.
 
-You can copy `.env.example` and customize values for your deployment.
+## Environment Variables
 
-Example:
+Backend variables:
 
-```bash
-JWT_SECRET="replace-with-strong-secret" npm run start:server
+- `PORT` default `3001`
+- `JWT_SECRET` required in production
+- `USER_STORE_FILE` file path for persisted users
+- `ALLOWED_ORIGINS` comma-separated frontend origin allowlist
+- `REQUEST_LOGGING_ENABLED` enable HTTP request logging, default `true`
+- `WS_HEARTBEAT_INTERVAL_MS` default `15000`
+- `STALE_ROOM_CLEANUP_INTERVAL_MS` default `30000`
+- `RECONNECT_GRACE_MS` default `900000`
+- `IDLE_ROOM_TTL_MS` default `120000`
+
+Frontend variables:
+
+- `VITE_API_BASE_URL` optional external API base URL, e.g. `https://api.splendor.rohil.org`
+- `VITE_WS_BASE_URL` optional external websocket URL, e.g. `wss://api.splendor.rohil.org/ws`
+
+If the frontend variables are unset, local development continues to use same-origin `/api` and `/ws` through the Vite proxy.
+
+## Recommended Production Setup
+
+Use:
+
+- `Vercel` for the frontend
+- `Railway` for the backend
+
+This repo now supports that split deployment model directly.
+
+### Why Railway
+
+The backend uses:
+
+- a long-lived Node server
+- raw WebSocket upgrades
+- in-memory multiplayer room state
+- file-backed user persistence
+
+That architecture works well on Railway, Render, or Fly.io, but not as a Vercel serverless backend.
+
+## Railway Backend Deployment
+
+### What the repo provides
+
+- `Dockerfile` for a production backend container
+- `railway.json` with a healthcheck path
+- `npm run start:server` for a production-style backend start
+- `tsconfig.server.json` for backend compilation and typechecking
+
+### What you need to do manually
+
+1. Create or log into a Railway account.
+2. Create a new Railway project and connect it to this repository.
+3. Add a volume to the backend service.
+4. Set Railway environment variables:
+
+```text
+JWT_SECRET=<strong-random-secret>
+USER_STORE_FILE=/data/users.json
+ALLOWED_ORIGINS=https://splendor.rohil.org
+REQUEST_LOGGING_ENABLED=true
 ```
 
-## Production hosting notes (personal site)
+Add any optional timing overrides only if you need them.
 
-For deployment behind your personal site/domain:
+5. Deploy the service and confirm the backend healthcheck works:
 
-1. Serve the frontend over HTTPS.
-2. Run backend on a private port (e.g., 3001).
-3. Configure reverse proxy routes:
-   - `/api/*` -> backend HTTP
-   - `/ws` -> backend WebSocket upgrade
-4. Ensure secure secret management for `JWT_SECRET`.
-
-### Nginx reverse proxy example (HTTPS + WSS)
-
-```nginx
-server {
-  listen 443 ssl http2;
-  server_name yourdomain.com;
-
-  # Frontend build output
-  root /var/www/splendor/dist;
-  index index.html;
-
-  location / {
-    try_files $uri /index.html;
-  }
-
-  location /api/ {
-    proxy_pass http://127.0.0.1:3001;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-
-  location /ws {
-    proxy_pass http://127.0.0.1:3001/ws;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-  }
-}
+```text
+https://<your-railway-domain>/api/health
 ```
 
-### Caddy reverse proxy example
+6. Optionally add a custom backend domain such as `api.splendor.rohil.org`.
+7. If you use a custom domain, add the required DNS record in your DNS provider.
 
-```caddy
-yourdomain.com {
-  root * /var/www/splendor/dist
-  file_server
-  try_files {path} /index.html
+### Persistence note
 
-  reverse_proxy /api/* 127.0.0.1:3001
-  reverse_proxy /ws 127.0.0.1:3001
-}
+User accounts are currently stored in a JSON file by `server/auth/userStore.ts`. Use a Railway volume so that registrations survive restarts and redeploys. Because room state is still in memory, keep the backend as a single running instance for now.
+
+## Vercel Frontend Deployment
+
+After the Railway backend is live, set these Vercel environment variables for the frontend project:
+
+```text
+VITE_API_BASE_URL=https://<your-railway-backend-domain>
+VITE_WS_BASE_URL=wss://<your-railway-backend-domain>/ws
 ```
 
-## Contributing
+Then redeploy the frontend.
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+If you use a custom backend domain like `api.splendor.rohil.org`, the values become:
+
+```text
+VITE_API_BASE_URL=https://api.splendor.rohil.org
+VITE_WS_BASE_URL=wss://api.splendor.rohil.org/ws
+```
+
+## Production Verification Checklist
+
+After Railway and Vercel are configured:
+
+1. Open the live frontend at `https://splendor.rohil.org/`.
+2. Confirm browser logs show auth and websocket connection attempts.
+3. Confirm `https://<backend-domain>/api/health` returns JSON.
+4. Register a new user from the live site.
+5. Log in with that user from the live site.
+6. Open a second browser session, create and join a room, and verify websocket updates flow between both clients.
+
+## Current Limitations
+
+- user auth is file-backed, not database-backed
+- multiplayer room state is in-memory, so horizontal scaling is not supported yet
+- the backend should stay single-instance until room state is moved to shared infrastructure such as Redis or a database
 
 ## License
 

@@ -13,10 +13,15 @@ export const createMultiplayerServer = () => {
     reconnectGraceMs: env.reconnectGraceMs,
     idleRoomTtlMs: env.idleRoomTtlMs,
   });
-  const app = createHttpApp(authService);
+  const app = createHttpApp(authService, {
+    allowedOrigins: env.allowedOrigins,
+    requestLoggingEnabled: env.requestLoggingEnabled,
+  });
   const server = http.createServer(app);
 
-  attachWebSocketServer(server, authService, roomManager);
+  attachWebSocketServer(server, authService, roomManager, {
+    allowedOrigins: env.allowedOrigins,
+  });
   server.on("close", () => {
     roomManager.dispose();
   });
