@@ -1,17 +1,16 @@
 import { Box, Button, Text, VStack } from "@chakra-ui/react";
-import { useGameStore } from "../store/gameStore";
 import { useEffect, useCallback } from "react";
 import confetti from "canvas-confetti";
 import { calculatePlayerPoints } from "../../shared/game/selectors";
 
 interface VictoryScreenProps {
   onRestart: () => void;
-  players?: Array<{
+  players: Array<{
     name: string;
     purchasedCards: Array<{ points: number }>;
     nobles: Array<{ points: number }>;
   }>;
-  winner?: number | null;
+  winner: number | null;
   calculatePoints?: (player: {
     purchasedCards: Array<{ points: number }>;
     nobles: Array<{ points: number }>;
@@ -21,28 +20,23 @@ interface VictoryScreenProps {
 
 export const VictoryScreen = ({
   onRestart,
-  players: playersProp,
-  winner: winnerProp,
+  players,
+  winner,
   calculatePoints = calculatePlayerPoints,
   actionLabel = "Play Again",
 }: VictoryScreenProps) => {
-  const storePlayers = useGameStore((state) => state.players);
-  const storeWinner = useGameStore((state) => state.winner);
-  const players = playersProp ?? storePlayers;
-  const winner = winnerProp ?? storeWinner;
-
   const fireConfetti = useCallback(() => {
     const duration = 5000;
     const end = Date.now() + duration;
 
     const colors = [
-      "#FF0000", // Red
-      "#FF7F00", // Orange
-      "#FFFF00", // Yellow
-      "#00FF00", // Green
-      "#0000FF", // Blue
-      "#4B0082", // Indigo
-      "#8B00FF", // Violet
+      "#FF0000",
+      "#FF7F00",
+      "#FFFF00",
+      "#00FF00",
+      "#0000FF",
+      "#4B0082",
+      "#8B00FF",
     ];
 
     const frame = () => {

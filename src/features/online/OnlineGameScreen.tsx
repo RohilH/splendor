@@ -1,17 +1,16 @@
-import { Alert, AlertDescription, AlertIcon, Box, Grid, Text, VStack } from "@chakra-ui/react";
+import { Alert, AlertDescription, AlertIcon } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
-import { canAffordCard, calculatePlayerPoints } from "../../../shared/game/selectors";
-import type { GamePublicState, GemType, OnlineGameAction } from "../../../shared/onlineTypes";
-import { ActivePlayerArea } from "../../components/ActivePlayerArea";
-import { CardField } from "../../components/CardField";
-import { GemBank } from "../../components/GemBank";
-import { NobleArea } from "../../components/NobleArea";
-import { NobleSelectionModal } from "../../components/NobleSelectionModal";
-import { PlayerArea } from "../../components/PlayerArea";
-import { VictoryScreen } from "../../components/VictoryScreen";
+import {
+  canAffordCard,
+  calculatePlayerPoints,
+} from "../../../shared/game/selectors";
+import type {
+  GamePublicState,
+  GemType,
+  OnlineGameAction,
+} from "../../../shared/onlineTypes";
+import { GameBoardView } from "../../components/GameBoardView";
 import { createEmptyGemSelection } from "../../store/tempGemStore";
-
-const cardLevels: Array<1 | 2 | 3> = [3, 2, 1];
 
 interface OnlineGameScreenProps {
   userId: string;
@@ -40,10 +39,13 @@ export const OnlineGameScreen = ({
       !gameState.pendingNobleSelectionPlayerId
   );
   const isMyNobleSelection = Boolean(
-    gameState.showNobleSelection && gameState.pendingNobleSelectionPlayerId === userId
+    gameState.showNobleSelection &&
+      gameState.pendingNobleSelectionPlayerId === userId
   );
   const currentPlayer = gameState.players[gameState.currentPlayer] ?? null;
-  const hasSelectedGems = Object.values(selectedGems).some((count) => count > 0);
+  const hasSelectedGems = Object.values(selectedGems).some(
+    (count) => count > 0
+  );
 
   useEffect(() => {
     setSelectedGems(createEmptyGemSelection());
@@ -61,151 +63,97 @@ export const OnlineGameScreen = ({
   };
 
   const submitTakeGems = (): boolean => {
-    if (!isMyTurn) {
-      return false;
-    }
-
-    sendGameAction({
-      type: "take_gems",
-      gems: selectedGems,
-    });
+    if (!isMyTurn) return false;
+    sendGameAction({ type: "take_gems", gems: selectedGems });
     resetGemSelection();
     return true;
   };
 
+  if (!myPlayer) return null;
+
+  const infoAlert =
+    gameState.pendingNobleSelectionPlayerId &&
+    !isMyNobleSelection &&
+    currentPlayer ? (
+      <Alert status="info" mb={4} borderRadius="lg">
+        <AlertIcon />
+        <AlertDescription>
+          Waiting for {currentPlayer.name} to choose a noble.
+        </AlertDescription>
+      </Alert>
+    ) : undefined;
+
   return (
-    <>
-      <Box p={4} pb={48} bg="gray.100" minH="100vh">
-        {gameState.pendingNobleSelectionPlayerId && !isMyNobleSelection && currentPlayer && (
-          <Alert status="info" mb={4} borderRadius="lg">
-            <AlertIcon />
-            <AlertDescription>
-              Waiting for {currentPlayer.name} to choose a noble.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Grid templateColumns="1fr 2fr 1fr" gap={6}>
-          <VStack gap={4} align="stretch">
-            {gameState.players.map((player, index) => (
-              <PlayerArea
-                key={player.userId}
-                player={{
-                  ...player,
-                  name: player.userId === userId ? `${player.name} (You)` : player.name,
-                }}
-                isActive={index === gameState.currentPlayer}
-                calculatePoints={calculatePlayerPoints}
-              />
-            ))}
-          </VStack>
-
-          <VStack gap={4} align="stretch">
-            {cardLevels.map((level) => {
-              const key: keyof GamePublicState["visibleCards"] = `level${level}`;
-              return (
-                <Box key={level}>
-                  <Text fontSize="sm" color="gray.600" mb={2}>
-                    Level {level} deck remaining: {gameState.deckCounts[key]}
-                  </Text>
-                  <CardField
-                    level={level}
-                    cards={gameState.visibleCards[key]}
-                    player={myPlayer ?? undefined}
-                    canAfford={(card) =>
-                      Boolean(myPlayer && isMyTurn && canAffordCard(myPlayer, card))
-                    }
-                    canReserveCard={Boolean(
-                      myPlayer &&
-                        isMyTurn &&
-                        !gameState.isGameOver &&
-                        !gameState.showNobleSelection &&
-                        myPlayer.reservedCards.length < 3
-                    )}
-                    onPurchase={(_, cardIndex) =>
-                      sendGameAction({
-                        type: "purchase_card",
-                        level,
-                        cardIndex,
-                      })
-                    }
-                    onReserve={(_, cardIndex) =>
-                      sendGameAction({
-                        type: "reserve_card",
-                        level,
-                        cardIndex,
-                      })
-                    }
-                  />
-                </Box>
-              );
-            })}
-          </VStack>
-
-          <VStack gap={4} align="stretch">
-            {myPlayer && (
-              <GemBank
-                gems={gameState.gems}
-                player={myPlayer}
-                selectedGems={selectedGems}
-                addGem={(gem) => handleGemAdjust(gem, 1)}
-                isInteractive={isMyTurn && !gameState.isGameOver && !gameState.showNobleSelection}
-              />
-            )}
-            <NobleArea nobles={gameState.nobles} />
-          </VStack>
-        </Grid>
-      </Box>
-
-      {myPlayer && (
-        <ActivePlayerArea
-          activePlayer={myPlayer}
-          selectedGems={selectedGems}
-          onRemoveSelectedGem={(gem) => handleGemAdjust(gem, -1)}
-          onClearSelectedGems={resetGemSelection}
-          onTakeSelectedGems={submitTakeGems}
-          onEndTurn={() => sendGameAction({ type: "end_turn" })}
-          onPurchaseReservedCard={(cardIndex) =>
-            sendGameAction({ type: "purchase_reserved_card", cardIndex })
-          }
-          canAffordReservedCard={(card) =>
-            Boolean(myPlayer && isMyTurn && canAffordCard(myPlayer, card))
-          }
-          isGameOver={gameState.isGameOver}
-          title={isMyTurn ? "Your Turn" : `Waiting for ${currentPlayer?.name ?? "opponent"}`}
-          primaryActionLabel={
-            isMyTurn
-              ? hasSelectedGems
-                ? "Take Gems & End Turn"
-                : "End Turn"
-              : `Waiting for ${currentPlayer?.name ?? "opponent"}`
-          }
-          isInteractionDisabled={!isMyTurn || gameState.showNobleSelection}
-        />
+    <GameBoardView
+      players={gameState.players}
+      currentPlayer={gameState.currentPlayer}
+      gems={gameState.gems}
+      visibleCards={gameState.visibleCards}
+      nobles={gameState.nobles}
+      availableNobles={gameState.availableNobles}
+      showNobleSelection={isMyNobleSelection}
+      selectedGems={selectedGems}
+      isGameOver={gameState.isGameOver}
+      winner={gameState.winner}
+      activePlayer={myPlayer}
+      onSelectGem={(gem) => handleGemAdjust(gem, 1)}
+      onRemoveSelectedGem={(gem) => handleGemAdjust(gem, -1)}
+      onTakeSelectedGems={submitTakeGems}
+      onEndTurn={() => sendGameAction({ type: "end_turn" })}
+      canAffordCard={(card) =>
+        Boolean(myPlayer && isMyTurn && canAffordCard(myPlayer, card))
+      }
+      canReserveCard={Boolean(
+        myPlayer &&
+          isMyTurn &&
+          !gameState.isGameOver &&
+          !gameState.showNobleSelection &&
+          myPlayer.reservedCards.length < 3
       )}
-
-      <NobleSelectionModal
-        isOpen={isMyNobleSelection}
-        nobles={gameState.availableNobles}
-        onSelect={(selectedNoble) =>
-          sendGameAction({
-            type: "select_noble",
-            nobleIndex: gameState.availableNobles.findIndex(
-              (noble) => noble === selectedNoble
-            ),
-          })
-        }
-      />
-
-      {gameState.isGameOver && (
-        <VictoryScreen
-          players={gameState.players}
-          winner={gameState.winner}
-          calculatePoints={calculatePlayerPoints}
-          actionLabel="Return to Lobby"
-          onRestart={onLeaveGame}
-        />
-      )}
-    </>
+      onPurchaseCard={(_card, cardIndex, level) =>
+        sendGameAction({ type: "purchase_card", level, cardIndex })
+      }
+      onReserveCard={(_card, cardIndex, level) =>
+        sendGameAction({ type: "reserve_card", level, cardIndex })
+      }
+      onPurchaseReservedCard={(cardIndex) =>
+        sendGameAction({ type: "purchase_reserved_card", cardIndex })
+      }
+      canAffordReservedCard={(card) =>
+        Boolean(myPlayer && isMyTurn && canAffordCard(myPlayer, card))
+      }
+      onSelectNoble={(noble) =>
+        sendGameAction({
+          type: "select_noble",
+          nobleIndex: gameState.availableNobles.findIndex((n) => n === noble),
+        })
+      }
+      onRestart={onLeaveGame}
+      title={
+        isMyTurn
+          ? "Your Turn"
+          : `Waiting for ${currentPlayer?.name ?? "opponent"}`
+      }
+      primaryActionLabel={
+        isMyTurn
+          ? hasSelectedGems
+            ? "Take Gems & End Turn"
+            : "End Turn"
+          : `Waiting for ${currentPlayer?.name ?? "opponent"}`
+      }
+      isInteractionDisabled={!isMyTurn || gameState.showNobleSelection}
+      isGemBankInteractive={
+        isMyTurn && !gameState.isGameOver && !gameState.showNobleSelection
+      }
+      deckCounts={gameState.deckCounts}
+      calculatePoints={calculatePlayerPoints}
+      victoryActionLabel="Return to Lobby"
+      infoAlert={infoAlert}
+      playerNameFormatter={(player) =>
+        "userId" in player && player.userId === userId
+          ? `${player.name} (You)`
+          : player.name
+      }
+    />
   );
 };

@@ -8,7 +8,7 @@ type PlayerResourceView = {
   }>;
 };
 
-type PlayerPointView = {
+export type PlayerPointView = {
   purchasedCards: Array<{ points: number }>;
   nobles: Array<{ points: number }>;
 };
