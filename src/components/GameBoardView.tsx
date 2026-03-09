@@ -1,6 +1,7 @@
 import { Box, Grid, Text, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { calculatePlayerPoints } from "../../shared/game/selectors";
+import type { PlayerPointView } from "../../shared/game/selectors";
 import type { Card, GemType, Gems, Noble, Player } from "../types/game";
 import type { OnlinePlayer } from "../../shared/onlineTypes";
 import { GemBank } from "./GemBank";
@@ -50,7 +51,7 @@ export interface GameBoardViewProps {
   isGemBankInteractive: boolean;
 
   deckCounts?: { level1: number; level2: number; level3: number };
-  calculatePoints?: (player: Player | OnlinePlayer) => number;
+  calculatePoints?: (player: PlayerPointView) => number;
   victoryActionLabel?: string;
   infoAlert?: ReactNode;
   playerNameFormatter?: (player: Player | OnlinePlayer) => string;

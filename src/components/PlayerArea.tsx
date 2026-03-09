@@ -1,11 +1,12 @@
 import { Box, HStack, Text, VStack, SimpleGrid } from "@chakra-ui/react";
 import { countGemBonuses, calculatePlayerPoints } from "../../shared/game/selectors";
+import type { PlayerPointView } from "../../shared/game/selectors";
 import { Player, GemType } from "../types/game";
 
 interface PlayerAreaProps {
   player: Player;
   isActive: boolean;
-  calculatePoints?: (player: Player) => number;
+  calculatePoints?: (player: PlayerPointView) => number;
 }
 
 // Bank gem colors
