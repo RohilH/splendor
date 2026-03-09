@@ -96,24 +96,21 @@ describe("multiplayer websocket integration", () => {
     const baseUrl = `http://127.0.0.1:${port}`;
 
     const userSuffix = Date.now();
-    const register = async (username: string) => {
-      const registerResponse = await fetch(`${baseUrl}/api/auth/register`, {
+    const createSession = async (username: string) => {
+      const sessionResponse = await fetch(`${baseUrl}/api/auth/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          password: "password123",
-        }),
+        body: JSON.stringify({ username }),
       });
-      expect(registerResponse.status).toBe(201);
-      return (await registerResponse.json()) as {
+      expect(sessionResponse.status).toBe(201);
+      return (await sessionResponse.json()) as {
         token: string;
         user: { id: string; username: string };
       };
     };
 
-    const userA = await register(`ws_alice_${userSuffix}`);
-    const userB = await register(`ws_bob_${userSuffix}`);
+    const userA = await createSession(`ws_alice_${userSuffix}`);
+    const userB = await createSession(`ws_bob_${userSuffix}`);
 
     const socketA = new WebSocket(`ws://127.0.0.1:${port}/ws`);
     const socketB = new WebSocket(`ws://127.0.0.1:${port}/ws`);
@@ -144,9 +141,16 @@ describe("multiplayer websocket integration", () => {
       socketA,
       (message) => message.type === "room:update" && Boolean(message.room)
     )) as Extract<ServerToClientMessage, { type: "room:update" }>;
+    const publicRoomsForUserB = (await waitForMessage(
+      socketB,
+      (message) =>
+        message.type === "rooms:update" &&
+        message.rooms.some((room) => room.players.length === 1 && !room.started)
+    )) as Extract<ServerToClientMessage, { type: "rooms:update" }>;
 
     const roomCode = roomUpdateA.room?.code;
     expect(roomCode).toBeTruthy();
+    expect(publicRoomsForUserB.rooms.some((room) => room.code === roomCode)).toBe(true);
 
     sendSocketMessage(socketB, { type: "room:join", roomCode: roomCode! });
 
@@ -238,14 +242,11 @@ describe("multiplayer websocket integration", () => {
     const baseUrl = `http://127.0.0.1:${port}`;
 
     const userSuffix = Date.now();
-    const register = async (username: string) => {
-      const response = await fetch(`${baseUrl}/api/auth/register`, {
+    const createSession = async (username: string) => {
+      const response = await fetch(`${baseUrl}/api/auth/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          password: "password123",
-        }),
+        body: JSON.stringify({ username }),
       });
       expect(response.status).toBe(201);
       return (await response.json()) as {
@@ -254,8 +255,8 @@ describe("multiplayer websocket integration", () => {
       };
     };
 
-    const userA = await register(`reconnect_alice_${userSuffix}`);
-    const userB = await register(`reconnect_bob_${userSuffix}`);
+    const userA = await createSession(`reconnect_alice_${userSuffix}`);
+    const userB = await createSession(`reconnect_bob_${userSuffix}`);
 
     const socketA = new WebSocket(`ws://127.0.0.1:${port}/ws`);
     const socketB = new WebSocket(`ws://127.0.0.1:${port}/ws`);
@@ -379,14 +380,11 @@ describe("multiplayer websocket integration", () => {
     const baseUrl = `http://127.0.0.1:${port}`;
 
     const userSuffix = Date.now();
-    const register = async (username: string) => {
-      const response = await fetch(`${baseUrl}/api/auth/register`, {
+    const createSession = async (username: string) => {
+      const response = await fetch(`${baseUrl}/api/auth/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          password: "password123",
-        }),
+        body: JSON.stringify({ username }),
       });
       expect(response.status).toBe(201);
       return (await response.json()) as {
@@ -395,8 +393,8 @@ describe("multiplayer websocket integration", () => {
       };
     };
 
-    const userA = await register(`dedupe_alice_${userSuffix}`);
-    const userB = await register(`dedupe_bob_${userSuffix}`);
+    const userA = await createSession(`dedupe_alice_${userSuffix}`);
+    const userB = await createSession(`dedupe_bob_${userSuffix}`);
 
     const socketA = new WebSocket(`ws://127.0.0.1:${port}/ws`);
     const socketB = new WebSocket(`ws://127.0.0.1:${port}/ws`);
@@ -489,14 +487,11 @@ describe("multiplayer websocket integration", () => {
     const port = await listen(serverInstance.server);
     const baseUrl = `http://127.0.0.1:${port}`;
 
-    const register = async (username: string) => {
-      const response = await fetch(`${baseUrl}/api/auth/register`, {
+    const createSession = async (username: string) => {
+      const response = await fetch(`${baseUrl}/api/auth/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          password: "password123",
-        }),
+        body: JSON.stringify({ username }),
       });
       expect(response.status).toBe(201);
       return (await response.json()) as {
@@ -507,11 +502,11 @@ describe("multiplayer websocket integration", () => {
 
     const suffix = Date.now();
     const users = await Promise.all([
-      register(`capacity_host_${suffix}`),
-      register(`capacity_p2_${suffix}`),
-      register(`capacity_p3_${suffix}`),
-      register(`capacity_p4_${suffix}`),
-      register(`capacity_p5_${suffix}`),
+      createSession(`capacity_host_${suffix}`),
+      createSession(`capacity_p2_${suffix}`),
+      createSession(`capacity_p3_${suffix}`),
+      createSession(`capacity_p4_${suffix}`),
+      createSession(`capacity_p5_${suffix}`),
     ]);
 
     const sockets = users.map(

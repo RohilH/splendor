@@ -9,9 +9,10 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import type { RoomState } from "../../../shared/onlineTypes";
+import type { PublicRoomState, RoomState } from "../../../shared/onlineTypes";
 
 interface LobbyScreenProps {
+  publicRooms: PublicRoomState[];
   room: RoomState | null;
   currentUserId: string;
   roomCodeInput: string;
@@ -23,6 +24,7 @@ interface LobbyScreenProps {
 }
 
 export const LobbyScreen = ({
+  publicRooms,
   room,
   currentUserId,
   roomCodeInput,
@@ -36,11 +38,52 @@ export const LobbyScreen = ({
     return (
       <Box borderWidth="1px" borderRadius="lg" p={5} bg="white">
         <VStack align="stretch" spacing={4}>
-          <Heading size="sm">Create or Join a Room</Heading>
+          <Heading size="sm">Public Rooms</Heading>
           <Button onClick={onCreateRoom} colorScheme="purple">
             Create New Room
           </Button>
           <Divider />
+          <VStack align="stretch" spacing={3}>
+            {publicRooms.length === 0 && (
+              <Text color="gray.600">No public rooms yet. Create one to get started.</Text>
+            )}
+            {publicRooms.map((publicRoom) => {
+              const canJoin = !publicRoom.started && publicRoom.players.length < 4;
+
+              return (
+                <Box key={publicRoom.code} borderWidth="1px" borderRadius="md" p={3}>
+                  <HStack justify="space-between" align="start">
+                    <VStack align="start" spacing={1}>
+                      <HStack>
+                        <Text fontWeight="semibold">{publicRoom.code}</Text>
+                        <Badge colorScheme={publicRoom.started ? "orange" : "green"}>
+                          {publicRoom.started ? "In Progress" : "Open"}
+                        </Badge>
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">
+                        {publicRoom.players.length}/4 players
+                      </Text>
+                      <Text fontSize="sm" color="gray.600">
+                        {publicRoom.players.map((player) => player.username).join(", ")}
+                      </Text>
+                    </VStack>
+                    <Button
+                      size="sm"
+                      colorScheme="blue"
+                      onClick={() => onJoinRoom(publicRoom.code)}
+                      isDisabled={!canJoin}
+                    >
+                      Join
+                    </Button>
+                  </HStack>
+                </Box>
+              );
+            })}
+          </VStack>
+          <Divider />
+          <Text fontSize="sm" color="gray.600">
+            Or join directly with a room code.
+          </Text>
           <HStack>
             <Input
               placeholder="Enter room code"

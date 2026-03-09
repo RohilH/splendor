@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import type { GamePublicState, OnlineGameAction, RoomState } from "../../shared/onlineTypes";
+import type {
+  GamePublicState,
+  OnlineGameAction,
+  PublicRoomState,
+  RoomState,
+} from "../../shared/onlineTypes";
 import type {
   ClientToServerMessage,
   ServerToClientMessage,
@@ -27,6 +32,7 @@ interface AuthResponse {
 interface OnlineSessionStore {
   user: AuthUser | null;
   token: string | null;
+  publicRooms: PublicRoomState[];
   room: RoomState | null;
   gameState: GamePublicState | null;
   status: ConnectionStatus;
@@ -34,8 +40,7 @@ interface OnlineSessionStore {
   info: string | null;
   initialized: boolean;
   initialize: () => Promise<void>;
-  register: (username: string, password: string) => Promise<boolean>;
-  login: (username: string, password: string) => Promise<boolean>;
+  claimName: (username: string) => Promise<boolean>;
   logout: () => void;
   clearError: () => void;
   createRoom: () => void;
@@ -145,6 +150,12 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
           });
           break;
 
+        case "rooms:update":
+          set({
+            publicRooms: message.rooms,
+          });
+          break;
+
         case "game:state":
           set((state) => {
             if (
@@ -207,8 +218,7 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
 const initialState: Omit<
   OnlineSessionStore,
   | "initialize"
-  | "register"
-  | "login"
+  | "claimName"
   | "logout"
   | "clearError"
   | "createRoom"
@@ -219,6 +229,7 @@ const initialState: Omit<
 > = {
   user: null,
   token: null,
+  publicRooms: [],
   room: null,
   gameState: null,
   status: "disconnected",
@@ -255,12 +266,11 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
     }
   },
 
-  register: async (username, password) => {
+  claimName: async (username) => {
     try {
-      console.info("[online] registering user");
-      const auth = await postJson<AuthResponse>("/api/auth/register", {
+      console.info("[online] creating session");
+      const auth = await postJson<AuthResponse>("/api/auth/session", {
         username,
-        password,
       });
       set({
         token: auth.token,
@@ -273,35 +283,9 @@ export const useOnlineSessionStore = create<OnlineSessionStore>((set, get) => ({
       connectSocket(set, get);
       return true;
     } catch (error) {
-      console.warn("[online] registration failed", error);
+      console.warn("[online] session creation failed", error);
       set({
-        error: error instanceof Error ? error.message : "Registration failed.",
-      });
-      return false;
-    }
-  },
-
-  login: async (username, password) => {
-    try {
-      console.info("[online] logging in user");
-      const auth = await postJson<AuthResponse>("/api/auth/login", {
-        username,
-        password,
-      });
-      set({
-        token: auth.token,
-        user: auth.user,
-        room: null,
-        gameState: null,
-        error: null,
-      });
-      persistSession(auth.token, auth.user);
-      connectSocket(set, get);
-      return true;
-    } catch (error) {
-      console.warn("[online] login failed", error);
-      set({
-        error: error instanceof Error ? error.message : "Login failed.",
+        error: error instanceof Error ? error.message : "Unable to claim that name.",
       });
       return false;
     }

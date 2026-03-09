@@ -37,7 +37,7 @@ describe("runtimeConfig", () => {
       wsBaseUrl: undefined,
     });
 
-    expect(getApiUrl("/api/auth/login")).toBe("https://api.example.com/api/auth/login");
+    expect(getApiUrl("/api/auth/session")).toBe("https://api.example.com/api/auth/session");
   });
 
   it("derives websocket url from VITE_API_BASE_URL when VITE_WS_BASE_URL is unset", () => {
@@ -81,7 +81,7 @@ describe("parseApiResponse", () => {
       },
     });
 
-    await expect(parseApiResponse(response, "/api/auth/login")).rejects.toThrow(
+    await expect(parseApiResponse(response, "/api/auth/session")).rejects.toThrow(
       "Backend returned a non-JSON 404 response"
     );
   });

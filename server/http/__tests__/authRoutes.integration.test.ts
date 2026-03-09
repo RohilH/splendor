@@ -43,47 +43,55 @@ describe("auth routes", () => {
     delete process.env.USER_STORE_FILE;
   });
 
-  it("registers, logs in, and resolves /me", async () => {
+  it("creates a session and resolves /me", async () => {
     serverInstance = createMultiplayerServer();
     const port = await listen(serverInstance.server);
     const baseUrl = `http://127.0.0.1:${port}`;
 
     const username = `auth_route_user_${Date.now()}`;
-    const password = "password123";
 
-    const registerResponse = await fetch(`${baseUrl}/api/auth/register`, {
+    const sessionResponse = await fetch(`${baseUrl}/api/auth/session`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username }),
     });
-    expect(registerResponse.status).toBe(201);
-    const registerPayload = (await registerResponse.json()) as {
+    expect(sessionResponse.status).toBe(201);
+    const sessionPayload = (await sessionResponse.json()) as {
       token: string;
       user: { id: string; username: string };
     };
-
-    const loginResponse = await fetch(`${baseUrl}/api/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-    expect(loginResponse.status).toBe(200);
-    const loginPayload = (await loginResponse.json()) as {
-      token: string;
-      user: { id: string; username: string };
-    };
-    expect(loginPayload.user.id).toBe(registerPayload.user.id);
 
     const meResponse = await fetch(`${baseUrl}/api/auth/me`, {
       headers: {
-        Authorization: `Bearer ${loginPayload.token}`,
+        Authorization: `Bearer ${sessionPayload.token}`,
       },
     });
     expect(meResponse.status).toBe(200);
     const mePayload = (await meResponse.json()) as {
       user: { id: string; username: string };
     };
-    expect(mePayload.user.id).toBe(registerPayload.user.id);
+    expect(mePayload.user.id).toBe(sessionPayload.user.id);
+  });
+
+  it("rejects duplicate usernames", async () => {
+    serverInstance = createMultiplayerServer();
+    const port = await listen(serverInstance.server);
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const username = `auth_route_dupe_${Date.now()}`;
+
+    const firstResponse = await fetch(`${baseUrl}/api/auth/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username }),
+    });
+    expect(firstResponse.status).toBe(201);
+
+    const duplicateResponse = await fetch(`${baseUrl}/api/auth/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: username.toUpperCase() }),
+    });
+    expect(duplicateResponse.status).toBe(409);
   });
 
   it("rejects unauthorized /me requests", async () => {

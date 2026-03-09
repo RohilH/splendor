@@ -5,7 +5,6 @@ interface UserRecord {
   id: string;
   username: string;
   usernameKey: string;
-  passwordHash: string;
   createdAt: string;
 }
 
@@ -93,7 +92,6 @@ export class UserStore {
   public async create(input: {
     id: string;
     username: string;
-    passwordHash: string;
   }): Promise<UserRecord> {
     return this.withLock(async () => {
       const users = await readUsers(this.userFilePath);
@@ -109,7 +107,6 @@ export class UserStore {
         id: input.id,
         username,
         usernameKey,
-        passwordHash: input.passwordHash,
         createdAt: new Date().toISOString(),
       };
 

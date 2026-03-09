@@ -57,7 +57,6 @@ async function main() {
   const suffix = Date.now();
   const userA = `lite_alice_${suffix}`;
   const userB = `lite_bob_${suffix}`;
-  const password = "password123";
 
   const browser = await puppeteer.launch({
     headless: true,
@@ -74,17 +73,14 @@ async function main() {
     for (const page of [pageA, pageB]) {
       await page.goto(URL, { waitUntil: "networkidle0" });
       await clickButtonByText(page, "Play Online Multiplayer");
-      await clickButtonByText(page, "Register");
     }
 
-    await pageA.type('input:not([type="password"])', userA);
-    await pageA.type('input[type="password"]', password);
-    await clickButtonByText(pageA, "Create Account");
+    await pageA.type("input", userA);
+    await clickButtonByText(pageA, "Continue");
     await waitForText(pageA, "Create New Room");
 
-    await pageB.type('input:not([type="password"])', userB);
-    await pageB.type('input[type="password"]', password);
-    await clickButtonByText(pageB, "Create Account");
+    await pageB.type("input", userB);
+    await clickButtonByText(pageB, "Continue");
     await waitForText(pageB, "Create New Room");
 
     await clickButtonByText(pageA, "Create New Room");

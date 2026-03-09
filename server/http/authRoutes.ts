@@ -17,44 +17,23 @@ const parseBearerToken = (headerValue: string | undefined): string | null => {
 export const createAuthRoutes = (authService: AuthService): Router => {
   const router = Router();
 
-  router.post("/register", async (req, res) => {
-    const { username, password } = req.body as {
+  router.post("/session", async (req, res) => {
+    const { username } = req.body as {
       username?: string;
-      password?: string;
     };
 
-    if (!username || !password) {
-      res.status(400).json({ message: "Username and password are required." });
+    if (!username) {
+      res.status(400).json({ message: "Username is required." });
       return;
     }
 
     try {
-      const result = await authService.register({ username, password });
+      const result = await authService.createSession({ username });
       res.status(201).json(result);
     } catch (error) {
-      res.status(400).json({
-        message: error instanceof Error ? error.message : "Registration failed.",
-      });
-    }
-  });
-
-  router.post("/login", async (req, res) => {
-    const { username, password } = req.body as {
-      username?: string;
-      password?: string;
-    };
-
-    if (!username || !password) {
-      res.status(400).json({ message: "Username and password are required." });
-      return;
-    }
-
-    try {
-      const result = await authService.login({ username, password });
-      res.json(result);
-    } catch (error) {
-      res.status(401).json({
-        message: error instanceof Error ? error.message : "Login failed.",
+      const message = error instanceof Error ? error.message : "Unable to create session.";
+      res.status(message === "Username is already taken." ? 409 : 400).json({
+        message,
       });
     }
   });
