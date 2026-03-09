@@ -10,7 +10,8 @@ export class RLAgent implements AiAgent {
   private network: NeuralNetwork;
 
   constructor(weights?: SerializedWeights) {
-    this.network = new NeuralNetwork([NUM_FEATURES, 128, 64, NUM_ACTION_SLOTS]);
+    // Architecture must match training: [138, 64, 58]
+    this.network = new NeuralNetwork([NUM_FEATURES, 64, NUM_ACTION_SLOTS]);
     if (weights) {
       this.network.setWeights(weights);
     }
