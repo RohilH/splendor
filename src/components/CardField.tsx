@@ -1,44 +1,23 @@
 import { Box, HStack, Text, VStack, Image, Button } from "@chakra-ui/react";
-import { useGameStore } from "../store/gameStore";
-import { Card, GemType, Player } from "../types/game";
+import { Card, GemType } from "../types/game";
 import { gemColors, gemImages } from "../utils/constants";
-import { canAffordCard } from "../../shared/game/selectors";
-import type { OnlinePlayer } from "../../shared/onlineTypes";
 
 interface CardFieldProps {
   level: 1 | 2 | 3;
-  cards?: Card[];
-  player?: Player | OnlinePlayer;
-  canAfford?: (card: Card) => boolean;
-  canReserveCard?: boolean;
-  onPurchase?: (card: Card, cardIndex: number) => void;
-  onReserve?: (card: Card, cardIndex: number) => void;
+  cards: Card[];
+  canAfford: (card: Card) => boolean;
+  canReserveCard: boolean;
+  onPurchase: (card: Card, cardIndex: number) => void;
+  onReserve: (card: Card, cardIndex: number) => void;
 }
 
 export const CardField = ({
-  level,
-  cards: cardsProp,
-  player: playerProp,
-  canAfford: canAffordProp,
-  canReserveCard: canReserveCardProp,
+  cards,
+  canAfford,
+  canReserveCard,
   onPurchase,
   onReserve,
 }: CardFieldProps) => {
-  const { visibleCards, currentPlayer, players } = useGameStore();
-  const purchaseCard = useGameStore((state) => state.purchaseCard);
-  const reserveCard = useGameStore((state) => state.reserveCard);
-  const assignNoblesAndEndTurn = useGameStore(
-    (state) => state.assignNoblesAndEndTurn
-  );
-
-  const cards = cardsProp ?? visibleCards[`level${level}`];
-  const player = playerProp ?? players[currentPlayer];
-
-  const canAfford =
-    canAffordProp ??
-    ((card: Card) => canAffordCard(player, card, useGameStore.getState().debugMode));
-  const canReserveCard = canReserveCardProp ?? player.reservedCards.length < 3;
-
   return (
     <HStack spacing={4} align="start">
       {cards.map((card: Card, index: number) => (
@@ -76,7 +55,6 @@ export const CardField = ({
                 "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)",
             }}
           >
-            {/* Card Content */}
             <VStack h="100%" justify="space-between" align="stretch">
               <HStack justify="space-between">
                 <Text
@@ -126,7 +104,6 @@ export const CardField = ({
             </VStack>
           </Box>
 
-          {/* Hover Actions */}
           <VStack
             className="card-actions"
             position="absolute"
@@ -147,15 +124,7 @@ export const CardField = ({
               width="full"
               colorScheme="blue"
               isDisabled={!canAfford(card)}
-              onClick={() => {
-                if (onPurchase) {
-                  onPurchase(card, index);
-                  return;
-                }
-
-                const success = purchaseCard(card, level);
-                if (success) assignNoblesAndEndTurn();
-              }}
+              onClick={() => onPurchase(card, index)}
             >
               {canAfford(card) ? "Purchase" : "Can't Afford"}
             </Button>
@@ -164,15 +133,7 @@ export const CardField = ({
               width="full"
               colorScheme="gray"
               isDisabled={!canReserveCard}
-              onClick={() => {
-                if (onReserve) {
-                  onReserve(card, index);
-                  return;
-                }
-
-                const success = reserveCard(card, level);
-                if (success) assignNoblesAndEndTurn();
-              }}
+              onClick={() => onReserve(card, index)}
             >
               {canReserveCard ? "Reserve" : "Reserve Full"}
             </Button>

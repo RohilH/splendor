@@ -9,10 +9,8 @@ import {
   Divider,
   Tooltip,
 } from "@chakra-ui/react";
-import { useGameStore } from "../store/gameStore";
 import { GemType, Card, Player } from "../types/game";
-import { useTempGemStore } from "../store/tempGemStore";
-import { canAffordCard, countGemBonuses } from "../../shared/game/selectors";
+import { countGemBonuses } from "../../shared/game/selectors";
 import type { OnlinePlayer } from "../../shared/onlineTypes";
 
 const gemImages: Record<GemType, string> = {
@@ -36,21 +34,16 @@ const gemColors: Record<GemType, string> = {
 interface CardSummaryProps {
   card: Card;
   onClick?: () => void;
-  canAfford?: boolean;
+  canAfford: boolean;
   isDisabled?: boolean;
 }
 
 const CardSummary = ({
   card,
   onClick,
-  canAfford: canAffordProp,
+  canAfford,
   isDisabled = false,
 }: CardSummaryProps) => {
-  const { players, currentPlayer } = useGameStore();
-  const player = players[currentPlayer];
-  const canAfford =
-    canAffordProp ?? canAffordCard(player, card, useGameStore.getState().debugMode);
-
   return (
     <Box position="relative">
       <Tooltip
@@ -105,7 +98,6 @@ const CardSummary = ({
             {card.points || "·"}
           </Text>
 
-          {/* Purchase Button Overlay */}
           {onClick && (
             <Box
               className="card-actions"
@@ -139,113 +131,64 @@ const CardSummary = ({
 };
 
 interface ActivePlayerAreaProps {
-  activePlayer?: Player | OnlinePlayer;
-  selectedGems?: Record<GemType, number>;
-  onRemoveSelectedGem?: (gemType: GemType) => void;
-  onClearSelectedGems?: () => void;
-  onTakeSelectedGems?: (gems: Partial<Record<GemType, number>>) => boolean | void;
-  onEndTurn?: () => void;
-  onPurchaseReservedCard?: (cardIndex: number) => void;
-  canAffordReservedCard?: (card: Card) => boolean;
-  isGameOver?: boolean;
-  title?: string;
-  primaryActionLabel?: string;
-  isInteractionDisabled?: boolean;
+  activePlayer: Player | OnlinePlayer;
+  selectedGems: Record<GemType, number>;
+  onRemoveSelectedGem: (gemType: GemType) => void;
+  onTakeSelectedGems: (gems: Partial<Record<GemType, number>>) => boolean | void;
+  onEndTurn: () => void;
+  onPurchaseReservedCard: (cardIndex: number) => void;
+  canAffordReservedCard: (card: Card) => boolean;
+  isGameOver: boolean;
+  title: string;
+  primaryActionLabel: string;
+  isInteractionDisabled: boolean;
 }
 
 export const ActivePlayerArea = ({
-  activePlayer: activePlayerProp,
-  selectedGems: selectedGemsProp,
+  activePlayer,
+  selectedGems,
   onRemoveSelectedGem,
-  onClearSelectedGems,
   onTakeSelectedGems,
   onEndTurn,
   onPurchaseReservedCard,
   canAffordReservedCard,
-  isGameOver: isGameOverProp,
+  isGameOver,
   title,
   primaryActionLabel,
-  isInteractionDisabled = false,
-}: ActivePlayerAreaProps = {}) => {
-  const { players, currentPlayer } = useGameStore();
-  const takeGems = useGameStore((state) => state.takeGems);
-  const assignNoblesAndEndTurn = useGameStore(
-    (state) => state.assignNoblesAndEndTurn
-  );
-  const purchaseReservedCard = useGameStore(
-    (state) => state.purchaseReservedCard
-  );
-  const storeIsGameOver = useGameStore((state) => state.isGameOver);
-  const { selectedGems: storeSelectedGems, removeGem, clearGems } = useTempGemStore();
-  const activePlayer = activePlayerProp ?? players[currentPlayer];
-  const selectedGems = selectedGemsProp ?? storeSelectedGems;
-  const isGameOver = isGameOverProp ?? storeIsGameOver;
+  isInteractionDisabled,
+}: ActivePlayerAreaProps) => {
   const gemBonuses = countGemBonuses(activePlayer);
+  const resolvedInteractionDisabled = isGameOver || isInteractionDisabled;
 
   const handleEndTurn = () => {
     const hasSelectedGems = Object.values(selectedGems).some(
       (count) => count > 0
     );
     if (hasSelectedGems) {
-      const success = onTakeSelectedGems ? onTakeSelectedGems(selectedGems) : takeGems(selectedGems);
-      if (success) {
-        if (onClearSelectedGems) {
-          onClearSelectedGems();
-        } else {
-          clearGems();
-          assignNoblesAndEndTurn();
-        }
-      }
-    } else if (onEndTurn) {
-      onEndTurn();
+      onTakeSelectedGems(selectedGems);
     } else {
-      assignNoblesAndEndTurn();
+      onEndTurn();
     }
   };
 
   const handleGemClick = (gemType: GemType) => {
-    if (isInteractionDisabled) {
-      return;
-    }
-
+    if (resolvedInteractionDisabled) return;
     if (selectedGems[gemType] > 0) {
-      if (onRemoveSelectedGem) {
-        onRemoveSelectedGem(gemType);
-      } else {
-        removeGem(gemType);
-      }
+      onRemoveSelectedGem(gemType);
     }
   };
 
   const handleReservedCardClick = (index: number) => {
-    if (isInteractionDisabled) {
-      return;
-    }
-
-    if (onPurchaseReservedCard) {
-      onPurchaseReservedCard(index);
-      return;
-    }
-
-    const success = purchaseReservedCard(index);
-    if (success && !onPurchaseReservedCard) {
-      handleEndTurn();
-    }
+    if (resolvedInteractionDisabled) return;
+    onPurchaseReservedCard(index);
   };
 
-  // Combine current gems with selected gems for display
   const displayGems = { ...activePlayer.gems };
   Object.entries(selectedGems).forEach(([gem, count]) => {
     if (count > 0) {
       displayGems[gem as GemType] = (displayGems[gem as GemType] || 0) + count;
     }
   });
-
-  const hasSelectedGems = Object.values(selectedGems).some((count) => count > 0);
-  const resolvedTitle = title ?? `Player ${activePlayer.id + 1}'s Turn`;
-  const resolvedActionLabel =
-    primaryActionLabel ?? (hasSelectedGems ? "Take Gems & End Turn" : "End Turn");
-  const resolvedInteractionDisabled = isGameOver || isInteractionDisabled;
 
   return (
     <Box
@@ -260,11 +203,10 @@ export const ActivePlayerArea = ({
       <HStack justify="space-between" align="start" spacing={6}>
         <VStack align="start" spacing={3} flex={1}>
           <Text fontSize="lg" fontWeight="bold" color="blue.600">
-            {resolvedTitle}
+            {title}
           </Text>
 
           <HStack spacing={6} w="100%" align="start">
-            {/* Gems Section */}
             <VStack align="start" minW="200px">
               <Text fontSize="sm" fontWeight="semibold">
                 Your Gems
@@ -300,7 +242,6 @@ export const ActivePlayerArea = ({
 
             <Divider orientation="vertical" h="90px" />
 
-            {/* Card Bonuses Section */}
             <VStack align="start" minW="180px">
               <Text fontSize="sm" fontWeight="semibold">
                 Card Bonuses
@@ -325,7 +266,6 @@ export const ActivePlayerArea = ({
 
             <Divider orientation="vertical" h="90px" />
 
-            {/* Reserved Cards Section */}
             <VStack align="start" minW="180px">
               <Text fontSize="sm" fontWeight="semibold">
                 Reserved Cards ({activePlayer.reservedCards.length}/3)
@@ -336,11 +276,7 @@ export const ActivePlayerArea = ({
                     key={index}
                     card={card}
                     onClick={() => handleReservedCardClick(index)}
-                    canAfford={
-                      canAffordReservedCard
-                        ? canAffordReservedCard(card)
-                        : undefined
-                    }
+                    canAfford={canAffordReservedCard(card)}
                     isDisabled={resolvedInteractionDisabled}
                   />
                 ))}
@@ -355,7 +291,7 @@ export const ActivePlayerArea = ({
           onClick={handleEndTurn}
           isDisabled={resolvedInteractionDisabled}
         >
-          {resolvedActionLabel}
+          {primaryActionLabel}
         </Button>
       </HStack>
     </Box>

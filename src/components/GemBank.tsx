@@ -6,9 +6,7 @@ import {
   Image,
   useToast,
 } from "@chakra-ui/react";
-import { useGameStore } from "../store/gameStore";
 import { GemType, Gems, Player } from "../types/game";
-import { useTempGemStore } from "../store/tempGemStore";
 
 const gemImages: Record<GemType, string> = {
   diamond: "/gems/diamond.svg",
@@ -29,30 +27,22 @@ const gemColors: Record<GemType, string> = {
 };
 
 interface GemBankProps {
-  gems?: Gems;
-  player?: Pick<Player, "gems">;
-  selectedGems?: Record<GemType, number>;
-  addGem?: (gem: GemType) => void;
-  isInteractive?: boolean;
+  gems: Gems;
+  player: Pick<Player, "gems">;
+  selectedGems: Record<GemType, number>;
+  addGem: (gem: GemType) => void;
+  isInteractive: boolean;
 }
 
 export const GemBank = ({
-  gems: gemsProp,
-  player: playerProp,
-  selectedGems: selectedGemsProp,
-  addGem: addGemProp,
-  isInteractive = true,
-}: GemBankProps = {}) => {
-  const storeGems = useGameStore((state) => state.gems);
-  const { players, currentPlayer } = useGameStore();
+  gems,
+  player,
+  selectedGems,
+  addGem,
+  isInteractive,
+}: GemBankProps) => {
   const toast = useToast();
-  const tempGemStore = useTempGemStore();
-  const gems = gemsProp ?? storeGems;
-  const selectedGems = selectedGemsProp ?? tempGemStore.selectedGems;
-  const addGem = addGemProp ?? tempGemStore.addGem;
-  const player = playerProp ?? players[currentPlayer];
 
-  // Calculate total gems including selected ones
   const totalPlayerGems = Object.values(player.gems).reduce(
     (sum, count) => sum + count,
     0
@@ -63,10 +53,8 @@ export const GemBank = ({
   );
   const remainingSpace = 10 - totalPlayerGems;
 
-  // Check if any gem type has 2 selected
   const hasTwoOfSame = Object.values(selectedGems).some((count) => count === 2);
 
-  // Count how many different gems are selected
   const differentGemsCount = Object.entries(selectedGems).filter(
     ([g, count]) => g !== "gold" && count > 0
   ).length;
@@ -77,7 +65,6 @@ export const GemBank = ({
     const availableGems = gems[gemType] - (selectedGems[gemType] || 0);
     const currentTempCount = selectedGems[gemType];
 
-    // Check if taking another gem would exceed the 10-gem limit
     if (selectedGemCount + 1 > remainingSpace) {
       toast({
         title: "Cannot take more gems",
@@ -89,7 +76,6 @@ export const GemBank = ({
       return;
     }
 
-    // If we already have 2 of any gem, prevent further selection
     if (hasTwoOfSame && currentTempCount === 0) {
       toast({
         title: "Cannot take more gems",
@@ -101,7 +87,6 @@ export const GemBank = ({
       return;
     }
 
-    // If we have different gems and trying to take 2 of same, prevent it
     if (currentTempCount === 1 && differentGemsCount > 1) {
       toast({
         title: "Cannot take two gems",
@@ -113,11 +98,8 @@ export const GemBank = ({
       return;
     }
 
-    // Check if we can take one more gem
     if (availableGems > 0 && currentTempCount < 2) {
-      // Check if taking 2 of the same type
       if (currentTempCount === 1) {
-        // Check if taking 2 would exceed the limit
         if (selectedGemCount + 1 > remainingSpace) {
           toast({
             title: "Cannot take two gems",
@@ -143,7 +125,6 @@ export const GemBank = ({
         return;
       }
 
-      // Check if taking different gems
       if (currentTempCount === 0 && differentGemsCount < 3) {
         addGem(gemType);
         return;

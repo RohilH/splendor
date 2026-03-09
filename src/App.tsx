@@ -11,9 +11,8 @@ import {
   Checkbox,
 } from "@chakra-ui/react";
 import { useGameStore } from "./store/gameStore";
-import { GameBoard } from "./components/GameBoard";
 import { useState } from "react";
-import { VictoryScreen } from "./components/VictoryScreen";
+import { LocalGameScreen } from "./features/local/LocalGameScreen";
 import { OnlineMultiplayerScreen } from "./features/online/OnlineMultiplayerScreen";
 
 type AppMode = "menu" | "local" | "online";
@@ -25,7 +24,6 @@ function App() {
   const [playerNames, setPlayerNames] = useState<string[]>([]);
   const [debugMode, setDebugMode] = useState(false);
   const initializeGame = useGameStore((state) => state.initializeGame);
-  const isGameOver = useGameStore((state) => state.isGameOver);
 
   const handlePlayerCountChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const count = parseInt(e.target.value);
@@ -50,6 +48,7 @@ function App() {
   };
 
   const handleRestart = () => {
+    useGameStore.getState().reset();
     setGameStarted(false);
     setPlayerCount(2);
     setPlayerNames([]);
@@ -140,10 +139,7 @@ function App() {
           )}
         </VStack>
       ) : (
-        <>
-          <GameBoard />
-          {isGameOver && <VictoryScreen onRestart={handleRestart} />}
-        </>
+        <LocalGameScreen onRestart={handleRestart} />
       )}
     </Box>
   );

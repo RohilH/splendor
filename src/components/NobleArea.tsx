@@ -1,5 +1,4 @@
 import { Box, HStack, Text, Image, SimpleGrid, VStack } from "@chakra-ui/react";
-import { useGameStore } from "../store/gameStore";
 import { GemType, Noble } from "../types/game";
 
 const gemImages: Record<Exclude<GemType, "gold">, string> = {
@@ -47,12 +46,10 @@ const NobleCard = ({ noble }: { noble: Noble }) => (
 );
 
 interface NobleAreaProps {
-  nobles?: Noble[];
+  nobles: Noble[];
 }
 
-export const NobleArea = ({ nobles: noblesProp }: NobleAreaProps) => {
-  const storeNobles = useGameStore((state) => state.nobles);
-  const nobles = noblesProp ?? storeNobles;
+export const NobleArea = ({ nobles }: NobleAreaProps) => {
   const nobleCount = nobles.length;
 
   return (
