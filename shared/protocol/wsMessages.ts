@@ -1,5 +1,5 @@
 import type { OnlineGameAction } from "../game/actions";
-import type { GamePublicState, RoomState } from "../onlineTypes";
+import type { GamePublicState, PublicRoomState, RoomState } from "../onlineTypes";
 
 export type ClientToServerMessage =
   | { type: "auth"; token: string }
@@ -18,6 +18,10 @@ export type ServerToClientMessage =
   | {
       type: "auth:error";
       message: string;
+    }
+  | {
+      type: "rooms:update";
+      rooms: PublicRoomState[];
     }
   | {
       type: "room:update";

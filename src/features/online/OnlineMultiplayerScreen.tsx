@@ -17,13 +17,13 @@ import { OnlineGameScreen } from "./OnlineGameScreen";
 export const OnlineMultiplayerScreen = ({ onBack }: { onBack: () => void }) => {
   const {
     user,
+    publicRooms,
     room,
     gameState,
     status,
     error,
     initialize,
-    register,
-    login,
+    claimName,
     logout,
     clearError,
     createRoom,
@@ -44,8 +44,7 @@ export const OnlineMultiplayerScreen = ({ onBack }: { onBack: () => void }) => {
       <AuthScreen
         onBack={onBack}
         error={error}
-        onLogin={login}
-        onRegister={register}
+        onClaimName={claimName}
       />
     );
   }
@@ -56,12 +55,12 @@ export const OnlineMultiplayerScreen = ({ onBack }: { onBack: () => void }) => {
         <VStack align="start" spacing={0}>
           <Heading size="md">Online Multiplayer</Heading>
           <Text color="gray.600" fontSize="sm">
-            Signed in as <b>{user.username}</b> · Socket: {status}
+            Playing as <b>{user.username}</b> · Socket: {status}
           </Text>
         </VStack>
         <HStack>
           <Button onClick={logout} variant="outline">
-            Logout
+            Use Different Name
           </Button>
           <Button onClick={onBack} variant="ghost">
             Back
@@ -81,6 +80,7 @@ export const OnlineMultiplayerScreen = ({ onBack }: { onBack: () => void }) => {
 
       {!room?.started && (
         <LobbyScreen
+          publicRooms={publicRooms}
           room={room}
           currentUserId={user.id}
           roomCodeInput={roomCodeInput}

@@ -48,4 +48,6 @@ export interface RoomState {
   started: boolean;
 }
 
+export interface PublicRoomState extends RoomState {}
+
 export type { OnlineGameAction } from "./game/actions";

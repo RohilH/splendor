@@ -24,42 +24,30 @@ describe("AuthService", () => {
     await Promise.all(matchingBackups.map((filePath) => fs.rm(filePath, { force: true })));
   });
 
-  it("registers and logs in a user", async () => {
-    const registration = await authService.register({
+  it("creates a session for a unique username", async () => {
+    const session = await authService.createSession({
       username: "AuthUser",
-      password: "password123",
     });
 
-    expect(registration.user.username).toBe("AuthUser");
-    expect(registration.token).toBeTypeOf("string");
-
-    const login = await authService.login({
-      username: "AuthUser",
-      password: "password123",
-    });
-
-    expect(login.user.id).toBe(registration.user.id);
-    expect(login.token).toBeTypeOf("string");
+    expect(session.user.username).toBe("AuthUser");
+    expect(session.token).toBeTypeOf("string");
   });
 
-  it("rejects duplicate username registration", async () => {
-    await authService.register({
+  it("rejects duplicate usernames", async () => {
+    await authService.createSession({
       username: "DupeUser",
-      password: "password123",
     });
 
     await expect(
-      authService.register({
+      authService.createSession({
         username: "dupeuser",
-        password: "password123",
       })
     ).rejects.toThrow("Username is already taken.");
   });
 
   it("resolves user from token and handles invalid token", async () => {
-    const registration = await authService.register({
+    const registration = await authService.createSession({
       username: "TokenUser",
-      password: "password123",
     });
 
     const fromToken = await authService.getUserFromToken(registration.token);
@@ -69,12 +57,11 @@ describe("AuthService", () => {
     expect(invalid).toBeNull();
   });
 
-  it("enforces minimum password length", async () => {
+  it("requires a username", async () => {
     await expect(
-      authService.register({
-        username: "ShortPass",
-        password: "123",
+      authService.createSession({
+        username: "   ",
       })
-    ).rejects.toThrow("Password must be at least 6 characters.");
+    ).rejects.toThrow("Username is required.");
   });
 });

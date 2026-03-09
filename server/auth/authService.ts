@@ -1,11 +1,9 @@
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { nanoid } from "nanoid";
 import { UserStore } from "./userStore";
 import { getEnvConfig } from "../config/env";
 
 const JWT_EXPIRY = "14d";
-const MIN_PASSWORD_LENGTH = 6;
 
 interface AuthUser {
   id: string;
@@ -24,59 +22,22 @@ export class AuthService {
     this.userStore = userStore ?? new UserStore();
   }
 
-  public async register(input: {
-    username: string;
-    password: string;
-  }): Promise<{ token: string; user: AuthUser }> {
+  public async createSession(input: { username: string }): Promise<{ token: string; user: AuthUser }> {
     const username = input.username.trim();
-    const password = input.password.trim();
 
     if (!username) {
       throw new Error("Username is required.");
     }
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
     const userRecord = await this.userStore.create({
       id: nanoid(16),
       username,
-      passwordHash,
     });
 
     const user: AuthUser = { id: userRecord.id, username: userRecord.username };
     const token = this.signToken(user.id);
 
     return { token, user };
-  }
-
-  public async login(input: {
-    username: string;
-    password: string;
-  }): Promise<{ token: string; user: AuthUser }> {
-    const username = input.username.trim();
-    const password = input.password.trim();
-
-    const userRecord = await this.userStore.getByUsername(username);
-    if (!userRecord) {
-      throw new Error("Invalid username or password.");
-    }
-
-    const passwordMatches = await bcrypt.compare(password, userRecord.passwordHash);
-    if (!passwordMatches) {
-      throw new Error("Invalid username or password.");
-    }
-
-    const token = this.signToken(userRecord.id);
-    return {
-      token,
-      user: {
-        id: userRecord.id,
-        username: userRecord.username,
-      },
-    };
   }
 
   public async getUserFromToken(token: string): Promise<AuthUser | null> {

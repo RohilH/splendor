@@ -1,6 +1,6 @@
 import type WebSocket from "ws";
 import { customAlphabet } from "nanoid";
-import type { RoomState, OnlineGameAction } from "../../shared/onlineTypes";
+import type { PublicRoomState, RoomState, OnlineGameAction } from "../../shared/onlineTypes";
 import type { ServerToClientMessage } from "../../shared/protocol/wsMessages";
 import { applyGameAction, createInitialGameState, toPublicGameState } from "./engine";
 import type { GameServerState } from "./engine";
@@ -71,6 +71,7 @@ export class RoomManager {
     this.socketsByUser.set(userId, socketSet);
     this.touchUserRoom(userId);
     this.broadcastUserRoom(userId);
+    this.broadcastPublicRooms();
   }
 
   public removeConnection(userId: string, socket: WebSocket): void {
@@ -86,6 +87,7 @@ export class RoomManager {
 
     this.touchUserRoom(userId);
     this.broadcastUserRoom(userId);
+    this.broadcastPublicRooms();
   }
 
   public createRoom(user: SessionUser): void {
@@ -113,6 +115,7 @@ export class RoomManager {
     this.rooms.set(room.code, room);
     this.userRoom.set(user.id, room.code);
     this.broadcastRoom(room.code);
+    this.broadcastPublicRooms();
   }
 
   public joinRoom(user: SessionUser, requestedRoomCode: string): void {
@@ -138,6 +141,7 @@ export class RoomManager {
       this.userRoom.set(user.id, room.code);
       this.touchRoom(room);
       this.broadcastRoom(room.code);
+      this.broadcastPublicRooms();
       if (room.gameState) {
         this.sendToUser(user.id, {
           type: "game:state",
@@ -164,6 +168,7 @@ export class RoomManager {
     this.userRoom.set(user.id, room.code);
     this.touchRoom(room);
     this.broadcastRoom(room.code);
+    this.broadcastPublicRooms();
   }
 
   public leaveRoom(user: SessionUser): void {
@@ -194,6 +199,7 @@ export class RoomManager {
 
     if (room.players.length === 0) {
       this.rooms.delete(room.code);
+      this.broadcastPublicRooms();
       return;
     }
 
@@ -203,6 +209,7 @@ export class RoomManager {
 
     this.touchRoom(room);
     this.broadcastRoom(room.code);
+    this.broadcastPublicRooms();
   }
 
   public startGame(user: SessionUser): void {
@@ -232,6 +239,7 @@ export class RoomManager {
     this.touchRoom(room);
     this.broadcastRoom(room.code);
     this.broadcastGame(room);
+    this.broadcastPublicRooms();
   }
 
   public handleGameAction(
@@ -270,6 +278,11 @@ export class RoomManager {
   }
 
   public syncUserState(userId: string): void {
+    this.sendToUser(userId, {
+      type: "rooms:update",
+      rooms: this.toPublicRoomStates(),
+    });
+
     const room = this.getUserRoom(userId);
     if (!room) {
       this.sendToUser(userId, { type: "room:update", room: null });
@@ -351,6 +364,7 @@ export class RoomManager {
     });
     this.reconnectManager.clearRoom(roomCode);
     this.rooms.delete(roomCode);
+    this.broadcastPublicRooms();
   }
 
   private isDuplicateActionId(room: Room, userId: string, actionId: string): boolean {
@@ -390,6 +404,12 @@ export class RoomManager {
     };
   }
 
+  private toPublicRoomStates(): PublicRoomState[] {
+    return [...this.rooms.values()]
+      .sort((left, right) => right.updatedAt - left.updatedAt)
+      .map((room) => this.toRoomState(room));
+  }
+
   private sendToUser(userId: string, message: ServerToClientMessage): void {
     const sockets = this.socketsByUser.get(userId);
     if (!sockets) {
@@ -411,6 +431,17 @@ export class RoomManager {
     };
 
     room.players.forEach((player) => this.sendToUser(player.userId, payload));
+  }
+
+  private broadcastPublicRooms(): void {
+    const payload: ServerToClientMessage = {
+      type: "rooms:update",
+      rooms: this.toPublicRoomStates(),
+    };
+
+    this.socketsByUser.forEach((_sockets, userId) => {
+      this.sendToUser(userId, payload);
+    });
   }
 
   private broadcastGame(room: Room): void {

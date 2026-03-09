@@ -4,7 +4,7 @@ A web-based implementation of Splendor with:
 
 - local pass-and-play mode
 - online multiplayer mode for 2-4 players
-- account-based authentication
+- name-based drop-in sessions
 - real-time gameplay over WebSockets
 
 Built with React, TypeScript, Chakra UI, Zustand, Express, and `ws`.
@@ -29,7 +29,7 @@ Open:
 http://localhost:5173
 ```
 
-Then choose **Play Online Multiplayer**, register two users in separate browser windows, create or join a room, and start the game.
+Then choose **Play Online Multiplayer**, pick two unique player names in separate browser windows, create or join a public room, and start the game.
 
 ### Running services separately
 
@@ -96,8 +96,7 @@ npm run demo:online:video
 
 HTTP endpoints:
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
+- `POST /api/auth/session`
 - `GET /api/auth/me`
 - `GET /api/health`
 
@@ -144,7 +143,7 @@ The backend uses:
 - a long-lived Node server
 - raw WebSocket upgrades
 - in-memory multiplayer room state
-- file-backed user persistence
+- file-backed player-name persistence
 
 That architecture works well on Railway, Render, or Fly.io, but not as a Vercel serverless backend.
 

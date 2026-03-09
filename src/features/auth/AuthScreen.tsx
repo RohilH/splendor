@@ -16,33 +16,18 @@ import { useState } from "react";
 interface AuthScreenProps {
   onBack: () => void;
   error: string | null;
-  onLogin: (username: string, password: string) => Promise<boolean>;
-  onRegister: (username: string, password: string) => Promise<boolean>;
+  onClaimName: (username: string) => Promise<boolean>;
 }
 
-export const AuthScreen = ({
-  onBack,
-  error,
-  onLogin,
-  onRegister,
-}: AuthScreenProps) => {
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+export const AuthScreen = ({ onBack, error, onClaimName }: AuthScreenProps) => {
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
 
   const handleSubmit = async (): Promise<void> => {
-    if (!username.trim() || !password.trim()) {
+    if (!username.trim()) {
       return;
     }
 
-    const success =
-      authMode === "register"
-        ? await onRegister(username, password)
-        : await onLogin(username, password);
-
-    if (success) {
-      setPassword("");
-    }
+    await onClaimName(username);
   };
 
   return (
@@ -54,40 +39,15 @@ export const AuthScreen = ({
         </Button>
       </HStack>
       <Text color="gray.600">
-        Create an account (or login) to play online with friends in different locations.
+        Pick a unique name to join public online games and start playing.
       </Text>
 
-      <HStack>
-        <Button
-          size="sm"
-          colorScheme={authMode === "login" ? "purple" : "gray"}
-          onClick={() => setAuthMode("login")}
-        >
-          Login
-        </Button>
-        <Button
-          size="sm"
-          colorScheme={authMode === "register" ? "purple" : "gray"}
-          onClick={() => setAuthMode("register")}
-        >
-          Register
-        </Button>
-      </HStack>
-
       <FormControl>
-        <FormLabel>Username</FormLabel>
+        <FormLabel>Name</FormLabel>
         <Input value={username} onChange={(event) => setUsername(event.target.value)} />
       </FormControl>
-      <FormControl>
-        <FormLabel>Password</FormLabel>
-        <Input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
-      </FormControl>
       <Button colorScheme="purple" onClick={() => void handleSubmit()}>
-        {authMode === "register" ? "Create Account" : "Login"}
+        Continue
       </Button>
       {error && (
         <Alert status="error">
