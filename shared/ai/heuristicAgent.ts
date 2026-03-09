@@ -3,7 +3,6 @@ import type { OnlineGameAction } from "../game/actions";
 import type { Card, GemType } from "../types/game";
 import { canAffordCard, countGemBonuses, calculatePlayerPoints } from "../game/selectors";
 import type { AiAgent } from "./types";
-import { NON_GOLD_GEMS } from "./types";
 import { enumerateValidActions, type ValidAction } from "./actionEnumerator";
 
 type Bonuses = Record<Exclude<GemType, "gold">, number>;
@@ -123,8 +122,9 @@ const scoreGemTaking = (
     const ecost = effectiveCostPerGem(card, bonuses);
     let gemsHelping = 0;
     for (const [gem, count] of Object.entries(gems)) {
+      if (gem === "gold") continue;
       const g = gem as Exclude<GemType, "gold">;
-      if (g !== "gold" && (count || 0) > 0 && ecost[g] > 0) {
+      if ((count || 0) > 0 && ecost[g] > 0) {
         gemsHelping += Math.min(count || 0, ecost[g] - player.gems[g]);
       }
     }
