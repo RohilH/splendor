@@ -19,11 +19,19 @@ export const CardField = ({
   onReserve,
 }: CardFieldProps) => {
   return (
-    <HStack spacing={4} align="start">
+    <Box
+      display={["grid", null, "flex"]}
+      gridTemplateColumns="repeat(4, 1fr)"
+      gap={[1, null, 4]}
+      overflowX={["hidden", null, "auto"]}
+      w="100%"
+      alignItems={["stretch", null, "start"]}
+    >
       {cards.map((card: Card, index: number) => (
         <Box
           key={index}
           position="relative"
+          flexShrink={0}
           _hover={{
             "& > .card-actions": {
               opacity: 1,
@@ -31,17 +39,17 @@ export const CardField = ({
           }}
         >
           <Box
-            w="150px"
-            h="200px"
+            w={["100%", null, "150px"]}
+            h={["100%", null, "200px"]}
             bg={`linear-gradient(135deg, ${gemColors[card.gem].primary}, ${
               gemColors[card.gem].secondary
             })`}
             borderRadius="lg"
-            p={3}
+            p={[2, null, 3]}
             position="relative"
             border="1px solid"
             borderColor={card.gem === "diamond" ? "gray.300" : "transparent"}
-            overflow="visible"
+            overflow="hidden"
             _before={{
               content: '""',
               position: "absolute",
@@ -58,7 +66,7 @@ export const CardField = ({
             <VStack h="100%" justify="space-between" align="stretch">
               <HStack justify="space-between">
                 <Text
-                  fontSize="2xl"
+                  fontSize={["md", null, "2xl"]}
                   fontWeight="bold"
                   color={card.gem === "diamond" ? "black" : "white"}
                 >
@@ -67,11 +75,11 @@ export const CardField = ({
                 <Image
                   src={gemImages[card.gem]}
                   alt={card.gem}
-                  boxSize="30px"
+                  boxSize={["18px", null, "30px"]}
                 />
               </HStack>
 
-              <VStack align="stretch" spacing={1}>
+              <VStack align="stretch" spacing={[0.5, null, 1]}>
                 {Object.entries(card.cost)
                   .filter(([, count]) => count > 0)
                   .sort(([, a], [, b]) => b - a)
@@ -80,14 +88,16 @@ export const CardField = ({
                       key={gem}
                       justify="flex-end"
                       spacing={1}
-                      p={1}
+                      p={[0.5, null, 1]}
                       borderRadius="md"
                       bg={
-                        card.gem === "diamond" ? "gray.100" : "rgba(0,0,0,0.2)"
+                        card.gem === "diamond"
+                          ? "gray.100"
+                          : "rgba(0,0,0,0.2)"
                       }
                     >
                       <Text
-                        fontSize="sm"
+                        fontSize={["xs", null, "sm"]}
                         fontWeight="bold"
                         color={card.gem === "diamond" ? "black" : "white"}
                       >
@@ -96,7 +106,7 @@ export const CardField = ({
                       <Image
                         src={gemImages[gem as GemType]}
                         alt={gem}
-                        boxSize="20px"
+                        boxSize={["14px", null, "20px"]}
                       />
                     </HStack>
                   ))}
@@ -117,7 +127,7 @@ export const CardField = ({
             justify="center"
             bg="blackAlpha.700"
             borderRadius="lg"
-            p={4}
+            p={[2, null, 4]}
           >
             <Button
               size="sm"
@@ -140,6 +150,6 @@ export const CardField = ({
           </VStack>
         </Box>
       ))}
-    </HStack>
+    </Box>
   );
 };
