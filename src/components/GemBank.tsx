@@ -142,8 +142,8 @@ export const GemBank = ({
   };
 
   return (
-    <Box w="100%" bg="white" p={4} borderRadius="xl" boxShadow="sm">
-      <SimpleGrid columns={2} spacing={4}>
+    <Box w="100%" bg="white" p={[3, null, 4]} borderRadius="xl" boxShadow="sm">
+      <SimpleGrid columns={[3, null, 2]} spacing={[2, null, 4]}>
         {(Object.entries(gems) as [GemType, number][]).map(([gem, count]) => {
           const availableGems = count - (selectedGems[gem] || 0);
           const isDisabled =
@@ -158,7 +158,7 @@ export const GemBank = ({
             <VStack
               key={gem}
               spacing={1}
-              p={3}
+              p={[2, null, 3]}
               bg={gemColors[gem]}
               borderRadius="lg"
               opacity={isDisabled ? 0.3 : 1}
@@ -169,9 +169,9 @@ export const GemBank = ({
               border="1px solid"
               borderColor={gem === "diamond" ? "gray.300" : "transparent"}
             >
-              <Image src={gemImages[gem]} alt={gem} boxSize="40px" />
+              <Image src={gemImages[gem]} alt={gem} boxSize={["30px", null, "40px"]} />
               <Text
-                fontSize="lg"
+                fontSize={["md", null, "lg"]}
                 fontWeight="bold"
                 color={gem === "diamond" ? "black" : "white"}
               >

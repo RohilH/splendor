@@ -8,6 +8,7 @@ import {
   Button,
   Divider,
   Tooltip,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { GemType, Card, Player } from "../types/game";
 import { countGemBonuses } from "../../shared/game/selectors";
@@ -159,6 +160,7 @@ export const ActivePlayerArea = ({
 }: ActivePlayerAreaProps) => {
   const gemBonuses = countGemBonuses(activePlayer);
   const resolvedInteractionDisabled = isGameOver || isInteractionDisabled;
+  const isMobile = useBreakpointValue({ base: true, md: false }, { fallback: "md" });
 
   const handleEndTurn = () => {
     const hasSelectedGems = Object.values(selectedGems).some(
@@ -190,6 +192,100 @@ export const ActivePlayerArea = ({
     }
   });
 
+  if (isMobile) {
+    return (
+      <Box
+        position="fixed"
+        bottom={0}
+        left={0}
+        right={0}
+        bg="white"
+        boxShadow="0 -4px 6px -1px rgba(0, 0, 0, 0.1)"
+        p={2}
+        zIndex={10}
+      >
+        <VStack spacing={2} align="stretch">
+          <HStack justify="space-between" align="center">
+            <Text fontSize="sm" fontWeight="bold" color="blue.600" noOfLines={1}>
+              {title}
+            </Text>
+            <HStack spacing={1} flexShrink={0}>
+              {activePlayer.reservedCards.length > 0 &&
+                activePlayer.reservedCards.map((card, index) => (
+                  <CardSummary
+                    key={index}
+                    card={card}
+                    onClick={() => handleReservedCardClick(index)}
+                    canAfford={canAffordReservedCard(card)}
+                    isDisabled={resolvedInteractionDisabled}
+                  />
+                ))}
+            </HStack>
+          </HStack>
+
+          <HStack spacing={3} overflowX="auto">
+            <HStack spacing={2} flexShrink={0}>
+              {(Object.entries(displayGems) as [GemType, number][]).map(
+                ([gem, count]) => (
+                  <VStack
+                    key={gem}
+                    spacing={0}
+                    cursor={
+                      selectedGems[gem] > 0 && !resolvedInteractionDisabled
+                        ? "pointer"
+                        : "default"
+                    }
+                    onClick={() => handleGemClick(gem)}
+                    opacity={selectedGems[gem] > 0 ? 1 : 0.7}
+                  >
+                    <Image src={gemImages[gem]} alt={gem} boxSize="20px" />
+                    <Text
+                      fontSize="xs"
+                      fontWeight="bold"
+                      color={selectedGems[gem] > 0 ? "green.500" : "inherit"}
+                    >
+                      {count}
+                    </Text>
+                  </VStack>
+                )
+              )}
+            </HStack>
+
+            <Divider orientation="vertical" h="36px" />
+
+            <HStack spacing={2} flexShrink={0}>
+              {(Object.entries(gemBonuses) as [GemType, number][]).map(
+                ([gem, count]) => (
+                  <VStack key={gem} spacing={0}>
+                    <Image src={gemImages[gem]} alt={gem} boxSize="20px" />
+                    <Text
+                      fontSize="xs"
+                      fontWeight="bold"
+                      color={count > 0 ? "blue.500" : "gray.400"}
+                    >
+                      {count}
+                    </Text>
+                  </VStack>
+                )
+              )}
+            </HStack>
+          </HStack>
+
+          <Button
+            colorScheme="blue"
+            size="lg"
+            w="100%"
+            h="44px"
+            onClick={handleEndTurn}
+            isDisabled={resolvedInteractionDisabled}
+          >
+            {primaryActionLabel}
+          </Button>
+        </VStack>
+      </Box>
+    );
+  }
+
   return (
     <Box
       position="fixed"
@@ -207,7 +303,7 @@ export const ActivePlayerArea = ({
           </Text>
 
           <HStack spacing={6} w="100%" align="start">
-            <VStack align="start" minW="200px">
+            <VStack align="start">
               <Text fontSize="sm" fontWeight="semibold">
                 Your Gems
               </Text>
@@ -242,7 +338,7 @@ export const ActivePlayerArea = ({
 
             <Divider orientation="vertical" h="90px" />
 
-            <VStack align="start" minW="180px">
+            <VStack align="start">
               <Text fontSize="sm" fontWeight="semibold">
                 Card Bonuses
               </Text>
@@ -266,7 +362,7 @@ export const ActivePlayerArea = ({
 
             <Divider orientation="vertical" h="90px" />
 
-            <VStack align="start" minW="180px">
+            <VStack align="start">
               <Text fontSize="sm" fontWeight="semibold">
                 Reserved Cards ({activePlayer.reservedCards.length}/3)
               </Text>

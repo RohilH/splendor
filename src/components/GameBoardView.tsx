@@ -1,4 +1,4 @@
-import { Box, Grid, Text, VStack } from "@chakra-ui/react";
+import { Box, Flex, Grid, Text, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { calculatePlayerPoints } from "../../shared/game/selectors";
 import type { PlayerPointView } from "../../shared/game/selectors";
@@ -93,26 +93,33 @@ export const GameBoardView = ({
 }: GameBoardViewProps) => {
   return (
     <>
-      <Box p={4} pb={48} bg="gray.100" minH="100vh">
+      <Box p={[2, null, 4]} pb={[36, null, 48]} bg="gray.100" minH="100vh">
         {infoAlert}
 
-        <Grid templateColumns="1fr 2fr 1fr" gap={6}>
-          <VStack gap={4} align="stretch">
-            {players.map((player, index) => (
-              <PlayerArea
-                key={player.id}
-                player={
-                  playerNameFormatter
-                    ? { ...player, name: playerNameFormatter(player) }
-                    : player
-                }
-                isActive={index === currentPlayer}
-                calculatePoints={calculatePoints}
-              />
-            ))}
-          </VStack>
+        <Grid templateColumns={["1fr", null, "1fr 2fr 1fr"]} gap={[3, null, 6]}>
+          <Box overflowX={["auto", null, "visible"]}>
+            <Flex
+              direction={["row", null, "column"]}
+              gap={[3, null, 4]}
+              align={["flex-start", null, "stretch"]}
+              minW={["max-content", null, "auto"]}
+            >
+              {players.map((player, index) => (
+                <PlayerArea
+                  key={player.id}
+                  player={
+                    playerNameFormatter
+                      ? { ...player, name: playerNameFormatter(player) }
+                      : player
+                  }
+                  isActive={index === currentPlayer}
+                  calculatePoints={calculatePoints}
+                />
+              ))}
+            </Flex>
+          </Box>
 
-          <VStack gap={4} align="stretch">
+          <VStack gap={[3, null, 4]} align="stretch">
             {cardLevels.map((level) => {
               const key = `level${level}` as keyof typeof visibleCards;
               return (
@@ -139,7 +146,7 @@ export const GameBoardView = ({
             })}
           </VStack>
 
-          <VStack gap={4} align="stretch">
+          <VStack gap={[3, null, 4]} align="stretch">
             <GemBank
               gems={gems}
               player={activePlayer}
