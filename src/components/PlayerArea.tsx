@@ -12,21 +12,13 @@ import {
 } from "../../shared/game/selectors";
 import type { PlayerPointView } from "../../shared/game/selectors";
 import { Player, GemType } from "../types/game";
+import { bankGemColors } from "../utils/constants";
 
 interface PlayerAreaProps {
   player: Player;
   isActive: boolean;
   calculatePoints?: (player: PlayerPointView) => number;
 }
-
-const bankGemColors: Record<GemType, { bg: string; border: string }> = {
-  diamond: { bg: "#ffffff", border: "#e2e8f0" },
-  sapphire: { bg: "#2b6cb0", border: "#2c5282" },
-  emerald: { bg: "#2f855a", border: "#276749" },
-  ruby: { bg: "#c53030", border: "#9b2c2c" },
-  onyx: { bg: "#1a202c", border: "#171923" },
-  gold: { bg: "#d69e2e", border: "#b7791f" },
-};
 
 export const PlayerArea = ({
   player,
