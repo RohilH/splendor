@@ -25,7 +25,7 @@ export const CardField = ({
       gap={[1, null, 4]}
       overflowX={["hidden", null, "auto"]}
       w="100%"
-      alignItems="start"
+      alignItems={["stretch", null, "start"]}
     >
       {cards.map((card: Card, index: number) => (
         <Box
@@ -40,8 +40,7 @@ export const CardField = ({
         >
           <Box
             w={["100%", null, "150px"]}
-            h={["auto", null, "200px"]}
-            aspectRatio={["5 / 7", null, "auto"]}
+            h={["100%", null, "200px"]}
             bg={`linear-gradient(135deg, ${gemColors[card.gem].primary}, ${
               gemColors[card.gem].secondary
             })`}
