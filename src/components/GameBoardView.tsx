@@ -93,7 +93,7 @@ export const GameBoardView = ({
 }: GameBoardViewProps) => {
   return (
     <>
-      <Box p={[2, null, 4]} pb={[36, null, 48]} bg="gray.100" minH="100vh">
+      <Box p={[2, null, 4]} pb={[48, null, 48]} bg="gray.100" minH="100vh" overflowX="hidden">
         {infoAlert}
 
         <Grid templateColumns={["1fr", null, "1fr 2fr 1fr"]} gap={[3, null, 6]}>

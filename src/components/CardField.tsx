@@ -50,7 +50,7 @@ export const CardField = ({
             position="relative"
             border="1px solid"
             borderColor={card.gem === "diamond" ? "gray.300" : "transparent"}
-            overflow="visible"
+            overflow="hidden"
             _before={{
               content: '""',
               position: "absolute",
@@ -80,7 +80,7 @@ export const CardField = ({
                 />
               </HStack>
 
-              <VStack align="stretch" spacing={1}>
+              <VStack align="stretch" spacing={[0.5, null, 1]}>
                 {Object.entries(card.cost)
                   .filter(([, count]) => count > 0)
                   .sort(([, a], [, b]) => b - a)
@@ -89,7 +89,7 @@ export const CardField = ({
                       key={gem}
                       justify="flex-end"
                       spacing={1}
-                      p={1}
+                      p={[0.5, null, 1]}
                       borderRadius="md"
                       bg={
                         card.gem === "diamond"
