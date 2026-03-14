@@ -1,7 +1,11 @@
 import type WebSocket from "ws";
 import { customAlphabet } from "nanoid";
 import type { PublicRoomState, RoomState, OnlineGameAction } from "../../shared/onlineTypes";
-import type { ServerToClientMessage } from "../../shared/protocol/wsMessages";
+import type {
+  ActionResultDetails,
+  GameActionResult,
+  ServerToClientMessage,
+} from "../../shared/protocol/wsMessages";
 import { applyGameAction, createInitialGameState, toPublicGameState } from "./engine";
 import type { GameServerState } from "./engine";
 import { ReconnectManager } from "./reconnectManager";
@@ -261,6 +265,8 @@ export class RoomManager {
       return;
     }
 
+    const actionDetails = this.buildActionDetails(room.gameState, user.id, action);
+
     const result = applyGameAction(room.gameState, user.id, action);
     if (result.error) {
       this.sendToUser(user.id, { type: "error", message: result.error });
@@ -273,6 +279,19 @@ export class RoomManager {
 
     room.gameState = result.state;
     this.touchRoom(room);
+
+    if (actionDetails) {
+      const actionResult: GameActionResult = {
+        playerName: user.username,
+        playerId: user.id,
+        action: actionDetails,
+      };
+      this.broadcastToRoom(room, {
+        type: "game:action_result",
+        result: actionResult,
+      });
+    }
+
     this.broadcastGame(room);
     this.broadcastRoom(room.code);
   }
@@ -329,6 +348,58 @@ export class RoomManager {
 
   public hasRoom(roomCode: string): boolean {
     return this.rooms.has(roomCode);
+  }
+
+  private buildActionDetails(
+    gameState: GameServerState,
+    userId: string,
+    action: OnlineGameAction
+  ): ActionResultDetails | null {
+    const getLevelKey = (level: 1 | 2 | 3): "level1" | "level2" | "level3" =>
+      `level${level}` as "level1" | "level2" | "level3";
+
+    switch (action.type) {
+      case "take_gems":
+        return { type: "take_gems", gems: action.gems };
+
+      case "purchase_card": {
+        const card = gameState.visibleCards[getLevelKey(action.level)][action.cardIndex];
+        if (!card) return null;
+        return { type: "purchase_card", card };
+      }
+
+      case "reserve_card": {
+        const player = gameState.players.find((p) => p.userId === userId);
+        const playerGemCount = player
+          ? Object.values(player.gems).reduce((sum, c) => sum + c, 0)
+          : 10;
+        const gotGold = playerGemCount < 10 && gameState.gems.gold > 0;
+        return { type: "reserve_card", level: action.level, gotGold };
+      }
+
+      case "purchase_reserved_card": {
+        const player = gameState.players.find((p) => p.userId === userId);
+        const card = player?.reservedCards[action.cardIndex];
+        if (!card) return null;
+        return { type: "purchase_reserved_card", card };
+      }
+
+      case "end_turn":
+        return { type: "end_turn" };
+
+      case "select_noble": {
+        const noble = gameState.availableNobles[action.nobleIndex];
+        if (!noble) return null;
+        return { type: "select_noble", noblePoints: noble.points };
+      }
+
+      default:
+        return null;
+    }
+  }
+
+  private broadcastToRoom(room: Room, message: ServerToClientMessage): void {
+    room.players.forEach((player) => this.sendToUser(player.userId, message));
   }
 
   private getUserRoom(userId: string): Room | null {
