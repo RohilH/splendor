@@ -4,26 +4,16 @@ import {
   Text,
   VStack,
   Image,
-  SimpleGrid,
   Button,
-  Divider,
   Tooltip,
   useBreakpointValue,
 } from "@chakra-ui/react";
 import { GemType, Card, Player } from "../types/game";
 import { countGemBonuses } from "../../shared/game/selectors";
 import type { OnlinePlayer } from "../../shared/onlineTypes";
+import { gemImages, bankGemColors } from "../utils/constants";
 
-const gemImages: Record<GemType, string> = {
-  diamond: "/gems/diamond.svg",
-  sapphire: "/gems/sapphire.svg",
-  emerald: "/gems/emerald.svg",
-  ruby: "/gems/ruby.svg",
-  onyx: "/gems/onyx.svg",
-  gold: "/gems/gold.svg",
-};
-
-const gemColors: Record<GemType, string> = {
+const cardBgColors: Record<GemType, string> = {
   diamond: "#ffffff",
   sapphire: "#0066cc",
   emerald: "#00cc66",
@@ -74,7 +64,7 @@ const CardSummary = ({
         <Box
           w="40px"
           h="56px"
-          bg={gemColors[card.gem]}
+          bg={cardBgColors[card.gem]}
           borderRadius="md"
           display="flex"
           alignItems="center"
@@ -223,52 +213,104 @@ export const ActivePlayerArea = ({
             </HStack>
           </HStack>
 
-          <HStack spacing={3} overflowX="auto">
-            <HStack spacing={2} flexShrink={0}>
-              {(Object.entries(displayGems) as [GemType, number][]).map(
-                ([gem, count]) => (
-                  <VStack
-                    key={gem}
-                    spacing={0}
-                    cursor={
-                      selectedGems[gem] > 0 && !resolvedInteractionDisabled
-                        ? "pointer"
-                        : "default"
-                    }
-                    onClick={() => handleGemClick(gem)}
-                    opacity={selectedGems[gem] > 0 ? 1 : 0.7}
-                  >
-                    <Image src={gemImages[gem]} alt={gem} boxSize="20px" />
-                    <Text
-                      fontSize="xs"
-                      fontWeight="bold"
-                      color={selectedGems[gem] > 0 ? "green.500" : "inherit"}
-                    >
-                      {count}
-                    </Text>
-                  </VStack>
-                )
-              )}
-            </HStack>
+          <HStack spacing={2} overflowX="auto">
+            <Box bg="orange.50" px={2} py={1.5} borderRadius="md" border="1px solid" borderColor="orange.100" flexShrink={0}>
+              <VStack spacing={1} align="start">
+                <Text fontSize="2xs" fontWeight="bold" color="orange.600" textTransform="uppercase" letterSpacing="wide">
+                  Coins
+                </Text>
+                <HStack spacing={1.5}>
+                  {(Object.entries(displayGems) as [GemType, number][]).map(
+                    ([gem, count]) => (
+                      <Box
+                        key={gem}
+                        w="22px"
+                        h="22px"
+                        bg={bankGemColors[gem].bg}
+                        borderRadius="full"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        border="1px solid"
+                        borderColor={
+                          count > 0 ? bankGemColors[gem].border : "gray.200"
+                        }
+                        opacity={count > 0 ? 1 : 0.3}
+                        cursor={
+                          selectedGems[gem] > 0 && !resolvedInteractionDisabled
+                            ? "pointer"
+                            : "default"
+                        }
+                        onClick={() => handleGemClick(gem)}
+                        boxShadow={selectedGems[gem] > 0 ? "0 0 0 2px var(--chakra-colors-green-400)" : "none"}
+                      >
+                        {count > 0 && (
+                          <Text
+                            fontSize="2xs"
+                            fontWeight="bold"
+                            color={gem === "diamond" ? "gray.800" : "white"}
+                          >
+                            {count}
+                          </Text>
+                        )}
+                      </Box>
+                    )
+                  )}
+                </HStack>
+              </VStack>
+            </Box>
 
-            <Divider orientation="vertical" h="36px" />
-
-            <HStack spacing={2} flexShrink={0}>
-              {(Object.entries(gemBonuses) as [GemType, number][]).map(
-                ([gem, count]) => (
-                  <VStack key={gem} spacing={0}>
-                    <Image src={gemImages[gem]} alt={gem} boxSize="20px" />
-                    <Text
-                      fontSize="xs"
-                      fontWeight="bold"
-                      color={count > 0 ? "blue.500" : "gray.400"}
-                    >
-                      {count}
-                    </Text>
-                  </VStack>
-                )
-              )}
-            </HStack>
+            <Box bg="blue.50" px={2} py={1.5} borderRadius="md" border="1px solid" borderColor="blue.100" flexShrink={0}>
+              <VStack spacing={1} align="start">
+                <Text fontSize="2xs" fontWeight="bold" color="blue.600" textTransform="uppercase" letterSpacing="wide">
+                  Cards
+                </Text>
+                <HStack spacing={1.5}>
+                  {(Object.entries(gemBonuses) as [GemType, number][]).map(
+                    ([gem, count]) => (
+                      <Box
+                        key={gem}
+                        position="relative"
+                        w="22px"
+                        h="28px"
+                        bg={bankGemColors[gem].bg}
+                        borderRadius="sm"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        border="1px solid"
+                        borderColor={
+                          count > 0 ? bankGemColors[gem].border : "gray.200"
+                        }
+                        opacity={count > 0 ? 1 : 0.3}
+                        _before={{
+                          content: '""',
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          opacity: 0.15,
+                          borderRadius: "sm",
+                          background:
+                            "repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.2) 3px, rgba(255,255,255,0.2) 6px)",
+                        }}
+                      >
+                        {count > 0 && (
+                          <Text
+                            fontSize="2xs"
+                            fontWeight="bold"
+                            color={gem === "diamond" ? "gray.800" : "white"}
+                          >
+                            {count}
+                          </Text>
+                        )}
+                      </Box>
+                    )
+                  )}
+                </HStack>
+              </VStack>
+            </Box>
           </HStack>
 
           <Button
@@ -302,82 +344,128 @@ export const ActivePlayerArea = ({
             {title}
           </Text>
 
-          <HStack spacing={6} w="100%" align="start">
-            <VStack align="start">
-              <Text fontSize="sm" fontWeight="semibold">
-                Your Gems
-              </Text>
-              <SimpleGrid columns={6} spacing={3} w="100%">
-                {(Object.entries(displayGems) as [GemType, number][]).map(
-                  ([gem, count]) => (
-                    <VStack
-                      key={gem}
-                      spacing={1}
-                      cursor={
-                        selectedGems[gem] > 0 && !resolvedInteractionDisabled
-                          ? "pointer"
-                          : "default"
-                      }
-                      onClick={() => handleGemClick(gem)}
-                      position="relative"
-                      opacity={selectedGems[gem] > 0 ? 1 : 0.7}
-                    >
-                      <Image src={gemImages[gem]} alt={gem} boxSize="25px" />
-                      <Text
-                        fontSize="sm"
-                        fontWeight="bold"
-                        color={selectedGems[gem] > 0 ? "green.500" : "inherit"}
+          <HStack spacing={4} w="100%" align="start">
+            <Box bg="orange.50" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="orange.100">
+              <VStack align="start">
+                <Text fontSize="xs" fontWeight="bold" color="orange.600" textTransform="uppercase" letterSpacing="wide">
+                  Coins
+                </Text>
+                <HStack spacing={3}>
+                  {(Object.entries(displayGems) as [GemType, number][]).map(
+                    ([gem, count]) => (
+                      <VStack
+                        key={gem}
+                        spacing={1}
+                        cursor={
+                          selectedGems[gem] > 0 && !resolvedInteractionDisabled
+                            ? "pointer"
+                            : "default"
+                        }
+                        onClick={() => handleGemClick(gem)}
                       >
-                        {count}
-                      </Text>
-                    </VStack>
-                  )
-                )}
-              </SimpleGrid>
-            </VStack>
+                        <Box
+                          w="30px"
+                          h="30px"
+                          bg={bankGemColors[gem].bg}
+                          borderRadius="full"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          border="2px solid"
+                          borderColor={
+                            count > 0 ? bankGemColors[gem].border : "gray.200"
+                          }
+                          opacity={count > 0 ? 1 : 0.3}
+                          transition="all 0.15s"
+                          boxShadow={selectedGems[gem] > 0 ? "0 0 0 2px var(--chakra-colors-green-400)" : "none"}
+                        >
+                          <Text
+                            fontSize="sm"
+                            fontWeight="bold"
+                            color={gem === "diamond" ? "gray.800" : "white"}
+                          >
+                            {count > 0 ? count : ""}
+                          </Text>
+                        </Box>
+                      </VStack>
+                    )
+                  )}
+                </HStack>
+              </VStack>
+            </Box>
 
-            <Divider orientation="vertical" h="90px" />
+            <Box bg="blue.50" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="blue.100">
+              <VStack align="start">
+                <Text fontSize="xs" fontWeight="bold" color="blue.600" textTransform="uppercase" letterSpacing="wide">
+                  Cards
+                </Text>
+                <HStack spacing={3}>
+                  {(Object.entries(gemBonuses) as [GemType, number][]).map(
+                    ([gem, count]) => (
+                      <VStack key={gem} spacing={1}>
+                        <Box
+                          position="relative"
+                          w="30px"
+                          h="40px"
+                          bg={bankGemColors[gem].bg}
+                          borderRadius="md"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          border="2px solid"
+                          borderColor={
+                            count > 0 ? bankGemColors[gem].border : "gray.200"
+                          }
+                          opacity={count > 0 ? 1 : 0.3}
+                          _before={{
+                            content: '""',
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            opacity: 0.15,
+                            borderRadius: "md",
+                            background:
+                              "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.2) 4px, rgba(255,255,255,0.2) 8px)",
+                          }}
+                        >
+                          <Text
+                            fontSize="sm"
+                            fontWeight="bold"
+                            color={gem === "diamond" ? "gray.800" : "white"}
+                          >
+                            {count > 0 ? count : ""}
+                          </Text>
+                        </Box>
+                      </VStack>
+                    )
+                  )}
+                </HStack>
+              </VStack>
+            </Box>
 
-            <VStack align="start">
-              <Text fontSize="sm" fontWeight="semibold">
-                Card Bonuses
-              </Text>
-              <SimpleGrid columns={5} spacing={3} w="100%">
-                {(Object.entries(gemBonuses) as [GemType, number][]).map(
-                  ([gem, count]) => (
-                    <VStack key={gem} spacing={1}>
-                      <Image src={gemImages[gem]} alt={gem} boxSize="25px" />
-                      <Text
-                        fontSize="sm"
-                        fontWeight="bold"
-                        color={count > 0 ? "blue.500" : "gray.400"}
-                      >
-                        {count}
-                      </Text>
-                    </VStack>
-                  )
-                )}
-              </SimpleGrid>
-            </VStack>
-
-            <Divider orientation="vertical" h="90px" />
-
-            <VStack align="start">
-              <Text fontSize="sm" fontWeight="semibold">
-                Reserved Cards ({activePlayer.reservedCards.length}/3)
-              </Text>
-              <HStack spacing={2}>
-                {activePlayer.reservedCards.map((card, index) => (
-                  <CardSummary
-                    key={index}
-                    card={card}
-                    onClick={() => handleReservedCardClick(index)}
-                    canAfford={canAffordReservedCard(card)}
-                    isDisabled={resolvedInteractionDisabled}
-                  />
-                ))}
-              </HStack>
-            </VStack>
+            <Box bg="gray.50" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="gray.100">
+              <VStack align="start">
+                <Text fontSize="xs" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide">
+                  Reserved ({activePlayer.reservedCards.length}/3)
+                </Text>
+                <HStack spacing={2}>
+                  {activePlayer.reservedCards.map((card, index) => (
+                    <CardSummary
+                      key={index}
+                      card={card}
+                      onClick={() => handleReservedCardClick(index)}
+                      canAfford={canAffordReservedCard(card)}
+                      isDisabled={resolvedInteractionDisabled}
+                    />
+                  ))}
+                  {activePlayer.reservedCards.length === 0 && (
+                    <Text fontSize="sm" color="gray.400">None</Text>
+                  )}
+                </HStack>
+              </VStack>
+            </Box>
           </HStack>
         </VStack>
 

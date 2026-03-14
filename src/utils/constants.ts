@@ -38,4 +38,13 @@ export const gemImages: Record<GemType, string> = {
   ruby: "/gems/ruby.svg",
   onyx: "/gems/onyx.svg",
   gold: "/gems/gold.svg",
-}; 
+};
+
+export const bankGemColors: Record<GemType, { bg: string; border: string }> = {
+  diamond: { bg: "#ffffff", border: "#e2e8f0" },
+  sapphire: { bg: "#2b6cb0", border: "#2c5282" },
+  emerald: { bg: "#2f855a", border: "#276749" },
+  ruby: { bg: "#c53030", border: "#9b2c2c" },
+  onyx: { bg: "#1a202c", border: "#171923" },
+  gold: { bg: "#d69e2e", border: "#b7791f" },
+};
