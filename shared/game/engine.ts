@@ -376,10 +376,11 @@ export const applyGameAction = (
         return { state: currentState, error: "You cannot afford that card." };
       }
 
-      state.visibleCards[levelKey].splice(action.cardIndex, 1);
       const replacementCard = state.cards[levelKey].shift();
       if (replacementCard) {
-        state.visibleCards[levelKey].push(replacementCard);
+        state.visibleCards[levelKey][action.cardIndex] = replacementCard;
+      } else {
+        state.visibleCards[levelKey].splice(action.cardIndex, 1);
       }
 
       resolveNoblesAndTurn(state, actorPlayerIndex);
@@ -411,10 +412,11 @@ export const applyGameAction = (
       }
 
       player.reservedCards.push(card);
-      state.visibleCards[levelKey].splice(action.cardIndex, 1);
       const replacementCard = state.cards[levelKey].shift();
       if (replacementCard) {
-        state.visibleCards[levelKey].push(replacementCard);
+        state.visibleCards[levelKey][action.cardIndex] = replacementCard;
+      } else {
+        state.visibleCards[levelKey].splice(action.cardIndex, 1);
       }
 
       resolveNoblesAndTurn(state, actorPlayerIndex);
