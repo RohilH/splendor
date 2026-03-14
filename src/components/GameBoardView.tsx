@@ -55,6 +55,7 @@ export interface GameBoardViewProps {
   victoryActionLabel?: string;
   infoAlert?: ReactNode;
   playerNameFormatter?: (player: Player | OnlinePlayer) => string;
+  isCpuPlayer?: (playerIndex: number) => boolean;
 }
 
 export const GameBoardView = ({
@@ -90,6 +91,7 @@ export const GameBoardView = ({
   victoryActionLabel,
   infoAlert,
   playerNameFormatter,
+  isCpuPlayer,
 }: GameBoardViewProps) => {
   return (
     <>
@@ -107,6 +109,7 @@ export const GameBoardView = ({
                     : player
                 }
                 isActive={index === currentPlayer}
+                isCpu={isCpuPlayer?.(index) ?? false}
                 calculatePoints={calculatePoints}
               />
             ))}
