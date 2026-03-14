@@ -119,7 +119,7 @@ export const GameBoardView = ({
             </Flex>
           </Box>
 
-          <VStack gap={[3, null, 4]} align="stretch">
+          <VStack gap={[3, null, 4]} align="stretch" order={[1, null, 0]}>
             {cardLevels.map((level) => {
               const key = `level${level}` as keyof typeof visibleCards;
               return (
