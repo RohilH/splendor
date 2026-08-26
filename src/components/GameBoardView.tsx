@@ -1,4 +1,4 @@
-import { Box, Flex, Grid, Text, VStack } from "@chakra-ui/react";
+import { Box, Flex, Grid, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { calculatePlayerPoints } from "../../shared/game/selectors";
 import type { PlayerPointView } from "../../shared/game/selectors";
@@ -11,6 +11,7 @@ import { NobleArea } from "./NobleArea";
 import { ActivePlayerArea } from "./ActivePlayerArea";
 import { NobleSelectionModal } from "./NobleSelectionModal";
 import { VictoryScreen } from "./VictoryScreen";
+import { DevelopmentDeck } from "./DevelopmentDeck";
 
 const cardLevels: Array<1 | 2 | 3> = [3, 2, 1];
 
@@ -56,6 +57,8 @@ export interface GameBoardViewProps {
   infoAlert?: ReactNode;
   playerNameFormatter?: (player: Player | OnlinePlayer) => string;
   isCpuPlayer?: (playerIndex: number) => boolean;
+  /** Show "N left" counts on the deck backs (default true). */
+  showDeckCounts?: boolean;
 }
 
 export const GameBoardView = ({
@@ -92,13 +95,18 @@ export const GameBoardView = ({
   infoAlert,
   playerNameFormatter,
   isCpuPlayer,
+  showDeckCounts = true,
 }: GameBoardViewProps) => {
   return (
     <>
-      <Box p={[2, null, 4]} pb={[48, null, 48]} bg="gray.100" minH="100vh" overflowX="hidden">
+      <Box p={[2, null, 4]} pb={[48, null, "158px"]} minH="100vh" overflowX="hidden">
         {infoAlert}
 
-        <Grid templateColumns={["1fr", null, "1fr 2fr 1fr"]} gap={[3, null, 6]}>
+        <Grid
+          templateColumns={["1fr", null, "minmax(190px, 250px) 1fr minmax(120px, 160px)"]}
+          gap={[3, null, 5]}
+        >
+          {/* Player mats */}
           <Box overflowX={["auto", null, "visible"]}>
             <Flex
               direction={["row", null, "column"]}
@@ -122,15 +130,22 @@ export const GameBoardView = ({
             </Flex>
           </Box>
 
+          {/* Center table: nobles row above the three card rows, decks at left */}
           <VStack gap={[3, null, 4]} align="stretch" order={[1, null, 0]}>
+            <NobleArea nobles={nobles} />
+
             {cardLevels.map((level) => {
               const key = `level${level}` as keyof typeof visibleCards;
               return (
-                <Box key={level}>
+                <Flex key={level} gap={[1.5, null, 3]} align="flex-start">
                   {deckCounts && (
-                    <Text fontSize="sm" color="gray.600" mb={2}>
-                      Level {level} deck remaining: {deckCounts[key]}
-                    </Text>
+                    <Box display={["none", null, "block"]}>
+                      <DevelopmentDeck
+                        level={level}
+                        remainingCards={deckCounts[key]}
+                        showCount={showDeckCounts}
+                      />
+                    </Box>
                   )}
                   <CardField
                     level={level}
@@ -144,11 +159,12 @@ export const GameBoardView = ({
                       onReserveCard(card, cardIndex, level)
                     }
                   />
-                </Box>
+                </Flex>
               );
             })}
           </VStack>
 
+          {/* Chip bank */}
           <VStack gap={[3, null, 4]} align="stretch">
             <GemBank
               gems={gems}
@@ -157,7 +173,6 @@ export const GameBoardView = ({
               addGem={onSelectGem}
               isInteractive={isGemBankInteractive}
             />
-            <NobleArea nobles={nobles} />
           </VStack>
         </Grid>
       </Box>
