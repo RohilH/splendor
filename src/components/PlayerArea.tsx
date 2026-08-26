@@ -4,6 +4,7 @@ import {
   Text,
   VStack,
   SimpleGrid,
+  Badge,
   useBreakpointValue,
 } from "@chakra-ui/react";
 import {
@@ -17,12 +18,14 @@ import { bankGemColors } from "../utils/constants";
 interface PlayerAreaProps {
   player: Player;
   isActive: boolean;
+  isCpu?: boolean;
   calculatePoints?: (player: PlayerPointView) => number;
 }
 
 export const PlayerArea = ({
   player,
   isActive,
+  isCpu = false,
   calculatePoints = calculatePlayerPoints,
 }: PlayerAreaProps) => {
   const totalPoints = calculatePoints(player);
@@ -56,9 +59,16 @@ export const PlayerArea = ({
             spacing={2}
             justify="space-between"
           >
-            <Text fontSize="sm" fontWeight="bold" noOfLines={1}>
-              {player.name}
-            </Text>
+            <HStack spacing={1} minW={0}>
+              <Text fontSize="sm" fontWeight="bold" noOfLines={1}>
+                {player.name}
+              </Text>
+              {isCpu && (
+                <Badge colorScheme="blue" fontSize="xs" variant="subtle">
+                  🤖
+                </Badge>
+              )}
+            </HStack>
             <Text fontSize="sm" fontWeight="bold" flexShrink={0}>
               {totalPoints}pt
             </Text>
@@ -194,9 +204,16 @@ export const PlayerArea = ({
           spacing={2}
           justify="space-between"
         >
-          <Text fontSize="md" fontWeight="bold">
-            {player.name}
-          </Text>
+          <HStack spacing={1}>
+            <Text fontSize="md" fontWeight="bold">
+              {player.name}
+            </Text>
+            {isCpu && (
+              <Badge colorScheme="blue" fontSize="xs" variant="subtle">
+                🤖
+              </Badge>
+            )}
+          </HStack>
           <Text fontSize="md" fontWeight="bold">
             {totalPoints}
           </Text>
