@@ -27,6 +27,7 @@ function App() {
   const [playerCount, setPlayerCount] = useState(2);
   const [playerNames, setPlayerNames] = useState<string[]>([]);
   const [debugMode, setDebugMode] = useState(false);
+  const [showDeckCounts, setShowDeckCounts] = useState(true);
 
   // CPU game state
   const [humanName, setHumanName] = useState("");
@@ -54,7 +55,7 @@ function App() {
       playerNames.length === playerCount &&
       playerNames.every((name) => name)
     ) {
-      initializeGame(playerCount, playerNames, debugMode);
+      initializeGame(playerCount, playerNames, debugMode, [], showDeckCounts);
       setGameStarted(true);
     }
   };
@@ -94,7 +95,7 @@ function App() {
       cpuConfig.push({ playerIndex: i + 1, difficulty: diff });
     }
 
-    initializeGame(totalPlayers, names, debugMode, cpuConfig);
+    initializeGame(totalPlayers, names, debugMode, cpuConfig, showDeckCounts);
     setGameStarted(true);
   };
 
@@ -111,31 +112,57 @@ function App() {
 
   if (mode === "online") {
     return (
-      <Box minH="100vh" bg="gray.50" p={4}>
+      <Box minH="100vh" p={4}>
         <OnlineMultiplayerScreen onBack={() => setMode("menu")} />
       </Box>
     );
   }
 
+  // The board manages its own padding (and must fit 100vh exactly), so the
+  // outer wrapper only pads the menu/setup screens.
   return (
-    <Box minH="100vh" bg="gray.50" p={4}>
+    <Box minH="100vh" p={gameStarted ? 0 : 4}>
       {!gameStarted ? (
         <VStack
           align="center"
           justify="center"
-          h="100vh"
-          spacing={8}
+          minH="100vh"
+          spacing={6}
           maxW="md"
           mx="auto"
         >
-          <Text fontSize="4xl" fontWeight="bold" color="purple.600">
-            Splendor
-          </Text>
+          <VStack spacing={1}>
+            <Text
+              fontSize="5xl"
+              fontWeight="bold"
+              color="tableGold.300"
+              fontFamily="Georgia, 'Times New Roman', serif"
+              letterSpacing="0.06em"
+              textShadow="0 2px 8px rgba(0,0,0,0.5)"
+            >
+              Splendor
+            </Text>
+            <Box h="2px" w="180px" bg="linear-gradient(90deg, transparent, rgba(217,180,91,0.8), transparent)" />
+          </VStack>
+
+          <VStack
+            bg="linear-gradient(160deg, #f9f4e8 0%, #f2e9d4 60%, #eadfc6 100%)"
+          border="1px solid rgba(111, 86, 45, 0.45)"
+          boxShadow="0 20px 50px rgba(6, 22, 15, 0.55)"
+          borderRadius="18px"
+          p={8}
+            spacing={5}
+            w="100%"
+            align="stretch"
+          >
 
           {mode === "menu" ? (
             <VStack spacing={4} w="100%">
               <Button
-                colorScheme="teal"
+                colorScheme="yellow"
+                bg="tableGold.400"
+                color="ink.900"
+                _hover={{ bg: "tableGold.300" }}
                 size="lg"
                 w="100%"
                 onClick={() => setMode("cpu")}
@@ -143,7 +170,10 @@ function App() {
                 Play vs CPU
               </Button>
               <Button
-                colorScheme="purple"
+                variant="outline"
+                borderColor="rgba(111, 86, 45, 0.55)"
+                color="ink.900"
+                _hover={{ bg: "rgba(217, 180, 91, 0.2)" }}
                 size="lg"
                 w="100%"
                 onClick={() => setMode("local")}
@@ -151,7 +181,10 @@ function App() {
                 Play Local (Pass-and-Play)
               </Button>
               <Button
-                colorScheme="blue"
+                variant="outline"
+                borderColor="rgba(111, 86, 45, 0.55)"
+                color="ink.900"
+                _hover={{ bg: "rgba(217, 180, 91, 0.2)" }}
                 size="lg"
                 w="100%"
                 onClick={() => setMode("online")}
@@ -223,6 +256,13 @@ function App() {
                 Debug Mode (Free Purchases)
               </Checkbox>
 
+              <Checkbox
+                isChecked={showDeckCounts}
+                onChange={(e) => setShowDeckCounts(e.target.checked)}
+              >
+                Show remaining deck counts
+              </Checkbox>
+
               <HStack w="100%">
                 <Button
                   variant="outline"
@@ -233,7 +273,10 @@ function App() {
                   Back
                 </Button>
                 <Button
-                  colorScheme="teal"
+                  colorScheme="yellow"
+                  bg="tableGold.400"
+                  color="ink.900"
+                  _hover={{ bg: "tableGold.300" }}
                   size="lg"
                   flex={1}
                   onClick={handleStartCpuGame}
@@ -277,6 +320,13 @@ function App() {
                 Debug Mode (Free Purchases)
               </Checkbox>
 
+              <Checkbox
+                isChecked={showDeckCounts}
+                onChange={(e) => setShowDeckCounts(e.target.checked)}
+              >
+                Show remaining deck counts
+              </Checkbox>
+
               <HStack w="100%">
                 <Button
                   variant="outline"
@@ -287,7 +337,10 @@ function App() {
                   Back
                 </Button>
                 <Button
-                  colorScheme="purple"
+                  colorScheme="yellow"
+                  bg="tableGold.400"
+                  color="ink.900"
+                  _hover={{ bg: "tableGold.300" }}
                   size="lg"
                   flex={1}
                   onClick={handleStartLocalGame}
@@ -301,6 +354,7 @@ function App() {
               </HStack>
             </>
           )}
+          </VStack>
         </VStack>
       ) : (
         <LocalGameScreen onRestart={handleRestart} />

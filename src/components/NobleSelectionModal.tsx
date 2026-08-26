@@ -5,21 +5,9 @@ import {
   ModalHeader,
   ModalBody,
   SimpleGrid,
-  Box,
-  Text,
-  Image,
-  VStack,
-  HStack,
 } from "@chakra-ui/react";
-import { Noble, GemType } from "../types/game";
-
-const gemImages: Record<Exclude<GemType, "gold">, string> = {
-  diamond: "/gems/diamond.svg",
-  sapphire: "/gems/sapphire.svg",
-  emerald: "/gems/emerald.svg",
-  ruby: "/gems/ruby.svg",
-  onyx: "/gems/onyx.svg",
-};
+import { Noble } from "../types/game";
+import { NobleTile } from "./NobleTile";
 
 interface NobleSelectionModalProps {
   isOpen: boolean;
@@ -34,55 +22,29 @@ export const NobleSelectionModal = ({
 }: NobleSelectionModalProps) => {
   return (
     <Modal isOpen={isOpen} onClose={() => {}} isCentered size="xl">
-      <ModalOverlay />
-      <ModalContent>
-        <ModalHeader textAlign="center">
+      <ModalOverlay bg="rgba(6, 22, 15, 0.75)" />
+      <ModalContent
+        bg="linear-gradient(160deg, #f9f4e8 0%, #f2e9d4 60%, #eadfc6 100%)"
+        border="1px solid rgba(111, 86, 45, 0.45)"
+        boxShadow="0 20px 50px rgba(6, 22, 15, 0.6)"
+        borderRadius="16px"
+      >
+        <ModalHeader
+          textAlign="center"
+          fontFamily="Georgia, 'Times New Roman', serif"
+          color="ink.900"
+        >
           Select a Noble to Visit You
         </ModalHeader>
         <ModalBody p={6}>
-          <SimpleGrid columns={2} spacing={4} justifyItems="center">
+          <SimpleGrid columns={2} spacing={5} justifyItems="center">
             {nobles.map((noble, index) => (
-              <Box
+              <NobleTile
                 key={index}
-                p={4}
-                bg="purple.50"
-                borderRadius="lg"
-                boxShadow="md"
-                w="160px"
-                h="160px"
-                cursor="pointer"
+                noble={noble}
+                size="modal"
                 onClick={() => onSelect(noble)}
-                transition="transform 0.2s"
-                _hover={{ transform: "scale(1.05)" }}
-              >
-                <VStack spacing={3}>
-                  <Text fontSize="3xl" fontWeight="bold" color="purple.800">
-                    {noble.points}
-                  </Text>
-                  <Box>
-                    <HStack spacing={2} justify="center" flexWrap="wrap">
-                      {Object.entries(noble.requirements).map(
-                        ([gem, count]) => (
-                          <VStack key={gem} spacing={0} align="center">
-                            <Text
-                              fontSize="sm"
-                              fontWeight="bold"
-                              color="purple.700"
-                            >
-                              {count}
-                            </Text>
-                            <Image
-                              src={gemImages[gem as Exclude<GemType, "gold">]}
-                              alt={gem}
-                              boxSize="24px"
-                            />
-                          </VStack>
-                        )
-                      )}
-                    </HStack>
-                  </Box>
-                </VStack>
-              </Box>
+              />
             ))}
           </SimpleGrid>
         </ModalBody>

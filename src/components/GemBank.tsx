@@ -1,30 +1,6 @@
-import {
-  Box,
-  SimpleGrid,
-  Text,
-  VStack,
-  Image,
-  useToast,
-} from "@chakra-ui/react";
+import { Box, Flex, Text, useToast } from "@chakra-ui/react";
 import { GemType, Gems, Player } from "../types/game";
-
-const gemImages: Record<GemType, string> = {
-  diamond: "/gems/diamond.svg",
-  sapphire: "/gems/sapphire.svg",
-  emerald: "/gems/emerald.svg",
-  ruby: "/gems/ruby.svg",
-  onyx: "/gems/onyx.svg",
-  gold: "/gems/gold.svg",
-};
-
-const gemColors: Record<GemType, string> = {
-  diamond: "#ffffff",
-  sapphire: "#0066cc",
-  emerald: "#00cc66",
-  ruby: "#cc0000",
-  onyx: "#333333",
-  gold: "#ffcc00",
-};
+import { GemChip } from "./GemChip";
 
 interface GemBankProps {
   gems: Gems;
@@ -142,8 +118,33 @@ export const GemBank = ({
   };
 
   return (
-    <Box w="100%" bg="white" p={[3, null, 4]} borderRadius="xl" boxShadow="sm">
-      <SimpleGrid columns={[3, null, 2]} spacing={[2, null, 4]}>
+    <Box
+      w="100%"
+      p={[3, null, 4]}
+      borderRadius="14px"
+      bg="rgba(6, 22, 15, 0.45)"
+      border="1px solid rgba(217, 180, 91, 0.28)"
+      boxShadow="inset 0 2px 10px rgba(0, 0, 0, 0.45)"
+    >
+      <Text
+        fontFamily="Georgia, 'Times New Roman', serif"
+        fontSize="sm"
+        fontWeight="bold"
+        letterSpacing="0.14em"
+        textTransform="uppercase"
+        color="tableGold.300"
+        textAlign="center"
+        mb={3}
+      >
+        Bank
+      </Text>
+      <Flex
+        direction={["row", null, "column"]}
+        wrap={["wrap", null, "nowrap"]}
+        justify="center"
+        align="center"
+        gap={[3, null, 4]}
+      >
         {(Object.entries(gems) as [GemType, number][]).map(([gem, count]) => {
           const availableGems = count - (selectedGems[gem] || 0);
           const isDisabled =
@@ -155,32 +156,17 @@ export const GemBank = ({
             (differentGemsCount === 3 && selectedGems[gem] === 0);
 
           return (
-            <VStack
+            <GemChip
               key={gem}
-              spacing={1}
-              p={[2, null, 3]}
-              bg={gemColors[gem]}
-              borderRadius="lg"
-              opacity={isDisabled ? 0.3 : 1}
-              cursor={isDisabled ? "not-allowed" : "pointer"}
-              onClick={() => !isDisabled && handleGemClick(gem)}
-              transition="all 0.2s"
-              _hover={!isDisabled ? { transform: "scale(1.05)" } : undefined}
-              border="1px solid"
-              borderColor={gem === "diamond" ? "gray.300" : "transparent"}
-            >
-              <Image src={gemImages[gem]} alt={gem} boxSize={["30px", null, "40px"]} />
-              <Text
-                fontSize={["md", null, "lg"]}
-                fontWeight="bold"
-                color={gem === "diamond" ? "black" : "white"}
-              >
-                {availableGems}
-              </Text>
-            </VStack>
+              gem={gem}
+              count={availableGems}
+              isSelected={selectedGems[gem] > 0}
+              isDisabled={isDisabled}
+              onClick={() => handleGemClick(gem)}
+            />
           );
         })}
-      </SimpleGrid>
+      </Flex>
     </Box>
   );
 };

@@ -14,6 +14,7 @@ const CPU_TURN_DELAY = 600;
 export const LocalGameScreen = ({ onRestart }: LocalGameScreenProps) => {
   const gameState = useGameStore((s) => s.gameState);
   const debugMode = useGameStore((s) => s.debugMode);
+  const showDeckCounts = useGameStore((s) => s.showDeckCounts);
   const dispatch = useGameStore((s) => s.dispatch);
   const executeCpuTurn = useGameStore((s) => s.executeCpuTurn);
   const isCpuPlayer = useGameStore((s) => s.isCpuPlayer);
@@ -200,7 +201,13 @@ export const LocalGameScreen = ({ onRestart }: LocalGameScreenProps) => {
       }
       isInteractionDisabled={interactionDisabled}
       isGemBankInteractive={!interactionDisabled}
+      deckCounts={{
+        level1: gameState.cards.level1.length,
+        level2: gameState.cards.level2.length,
+        level3: gameState.cards.level3.length,
+      }}
       isCpuPlayer={(idx) => isCpuPlayer(idx)}
+      showDeckCounts={showDeckCounts}
     />
   );
 };

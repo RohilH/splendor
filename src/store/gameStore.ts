@@ -17,6 +17,8 @@ interface CpuConfig {
 interface LocalGameStore {
   gameState: GameServerState | null;
   debugMode: boolean;
+  /** Show "N left" counts on the deck backs (off for hardcore play). */
+  showDeckCounts: boolean;
   cpuPlayers: Map<number, AiAgent>;
   cpuDifficulties: Map<number, AiDifficulty>;
   isCpuThinking: boolean;
@@ -26,6 +28,7 @@ interface LocalGameStore {
     playerNames: string[],
     debugMode?: boolean,
     cpuConfig?: CpuConfig[],
+    showDeckCounts?: boolean,
   ) => void;
 
   dispatch: (action: OnlineGameAction) => string | undefined;
@@ -40,11 +43,18 @@ interface LocalGameStore {
 export const useGameStore = create<LocalGameStore>((set, get) => ({
   gameState: null,
   debugMode: false,
+  showDeckCounts: true,
   cpuPlayers: new Map(),
   cpuDifficulties: new Map(),
   isCpuThinking: false,
 
-  initializeGame: (_numPlayers, playerNames, debugMode = false, cpuConfig = []) => {
+  initializeGame: (
+    _numPlayers,
+    playerNames,
+    debugMode = false,
+    cpuConfig = [],
+    showDeckCounts = true,
+  ) => {
     const players = playerNames.map((name, index) => ({
       userId: localUserId(index),
       name,
@@ -58,7 +68,7 @@ export const useGameStore = create<LocalGameStore>((set, get) => ({
       cpuDifficulties.set(cfg.playerIndex, cfg.difficulty);
     }
 
-    set({ gameState, debugMode, cpuPlayers, cpuDifficulties });
+    set({ gameState, debugMode, cpuPlayers, cpuDifficulties, showDeckCounts });
   },
 
   dispatch: (action) => {
@@ -132,6 +142,7 @@ export const useGameStore = create<LocalGameStore>((set, get) => ({
     set({
       gameState: null,
       debugMode: false,
+      showDeckCounts: true,
       cpuPlayers: new Map(),
       cpuDifficulties: new Map(),
       isCpuThinking: false,
