@@ -2,10 +2,15 @@
 <svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="rubyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#ff5252;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#e63939;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#cc3333;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#f26d6d;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#d92f3d;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9c1424;stop-opacity:1" />
     </linearGradient>
   </defs>
-  <polygon points="50,10 90,50 50,90 10,50" fill="url(#rubyGrad)" stroke="#cc3333" stroke-width="2"/>
-</svg> 
+  <!-- Cushion cut: square with clipped corners and cross facets -->
+  <polygon points="30,12 70,12 88,30 88,70 70,88 30,88 12,70 12,30" fill="url(#rubyGrad)" stroke="#7c0f1d" stroke-width="2.5" stroke-linejoin="round" transform="rotate(45 50 50)"/>
+  <polygon points="50,26 74,50 50,74 26,50" fill="none" stroke="#f08585" stroke-width="1.8" stroke-opacity="0.85"/>
+  <polyline points="50,10 50,26 26,50 10,50" fill="none" stroke="#b81f30" stroke-width="1.4"/>
+  <polyline points="90,50 74,50 50,74 50,90" fill="none" stroke="#b81f30" stroke-width="1.4"/>
+  <polygon points="40,30 54,30 44,42" fill="#ffffff" fill-opacity="0.45"/>
+</svg>

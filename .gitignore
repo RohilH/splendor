@@ -14,6 +14,9 @@ dist-ssr
 server/data/users.json
 server/data/
 
+# AI training checkpoints
+shared/ai/checkpoints/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

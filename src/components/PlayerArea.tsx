@@ -4,6 +4,7 @@ import {
   Text,
   VStack,
   SimpleGrid,
+  Badge,
   useBreakpointValue,
 } from "@chakra-ui/react";
 import {
@@ -17,12 +18,14 @@ import { bankGemColors } from "../utils/constants";
 interface PlayerAreaProps {
   player: Player;
   isActive: boolean;
+  isCpu?: boolean;
   calculatePoints?: (player: PlayerPointView) => number;
 }
 
 export const PlayerArea = ({
   player,
   isActive,
+  isCpu = false,
   calculatePoints = calculatePlayerPoints,
 }: PlayerAreaProps) => {
   const totalPoints = calculatePoints(player);
@@ -39,26 +42,38 @@ export const PlayerArea = ({
     return (
       <Box
         p={2}
-        bg={isActive ? "orange.50" : "white"}
+        bg="linear-gradient(160deg, #f9f4e8 0%, #f2e9d4 60%, #eadfc6 100%)"
         borderRadius="lg"
         borderWidth={2}
-        borderColor={isActive ? "orange.300" : "gray.200"}
-        boxShadow="sm"
+        borderColor={isActive ? "tableGold.400" : "rgba(111, 86, 45, 0.35)"}
+        boxShadow={
+          isActive
+            ? "0 0 0 2px rgba(217, 180, 91, 0.55), 0 6px 14px rgba(6, 22, 15, 0.45)"
+            : "0 4px 10px rgba(6, 22, 15, 0.4)"
+        }
         flexShrink={0}
         minW="150px"
       >
         <VStack align="stretch" spacing={1.5}>
           <HStack
-            bg="yellow.100"
+            bg="rgba(217, 180, 91, 0.28)"
+            border="1px solid rgba(163, 127, 46, 0.35)"
             px={2}
             py={1}
             borderRadius="md"
             spacing={2}
             justify="space-between"
           >
-            <Text fontSize="sm" fontWeight="bold" noOfLines={1}>
-              {player.name}
-            </Text>
+            <HStack spacing={1} minW={0}>
+              <Text fontSize="sm" fontWeight="bold" noOfLines={1} fontFamily="Georgia, 'Times New Roman', serif" color="ink.900">
+                {player.name}
+              </Text>
+              {isCpu && (
+                <Badge colorScheme="blue" fontSize="xs" variant="subtle">
+                  🤖
+                </Badge>
+              )}
+            </HStack>
             <Text fontSize="sm" fontWeight="bold" flexShrink={0}>
               {totalPoints}pt
             </Text>
@@ -179,24 +194,37 @@ export const PlayerArea = ({
   return (
     <Box
       p={3}
-      bg={isActive ? "orange.50" : "white"}
+      bg="linear-gradient(160deg, #f9f4e8 0%, #f2e9d4 60%, #eadfc6 100%)"
       borderRadius="xl"
       borderWidth={2}
-      borderColor={isActive ? "orange.300" : "gray.200"}
-      boxShadow="sm"
+      borderColor={isActive ? "tableGold.400" : "rgba(111, 86, 45, 0.35)"}
+      boxShadow={
+        isActive
+          ? "0 0 0 3px rgba(217, 180, 91, 0.55), 0 8px 18px rgba(6, 22, 15, 0.5)"
+          : "0 4px 10px rgba(6, 22, 15, 0.4)"
+      }
+      transition="box-shadow 0.2s, border-color 0.2s"
     >
       <VStack align="stretch" spacing={3}>
         <HStack
-          bg="yellow.100"
+          bg="rgba(217, 180, 91, 0.28)"
+          border="1px solid rgba(163, 127, 46, 0.35)"
           px={3}
           py={2}
           borderRadius="lg"
           spacing={2}
           justify="space-between"
         >
-          <Text fontSize="md" fontWeight="bold">
-            {player.name}
-          </Text>
+          <HStack spacing={1}>
+            <Text fontSize="md" fontWeight="bold" fontFamily="Georgia, 'Times New Roman', serif" color="ink.900">
+              {player.name}
+            </Text>
+            {isCpu && (
+              <Badge colorScheme="blue" fontSize="xs" variant="subtle">
+                🤖
+              </Badge>
+            )}
+          </HStack>
           <Text fontSize="md" fontWeight="bold">
             {totalPoints}
           </Text>

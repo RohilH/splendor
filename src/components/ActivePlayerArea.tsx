@@ -13,15 +13,6 @@ import { countGemBonuses } from "../../shared/game/selectors";
 import type { OnlinePlayer } from "../../shared/onlineTypes";
 import { gemImages, bankGemColors } from "../utils/constants";
 
-const cardBgColors: Record<GemType, string> = {
-  diamond: "#ffffff",
-  sapphire: "#0066cc",
-  emerald: "#00cc66",
-  ruby: "#cc0000",
-  onyx: "#333333",
-  gold: "#ffcc00",
-};
-
 interface CardSummaryProps {
   card: Card;
   onClick?: () => void;
@@ -64,7 +55,7 @@ const CardSummary = ({
         <Box
           w="40px"
           h="56px"
-          bg={cardBgColors[card.gem]}
+          bg={bankGemColors[card.gem].bg}
           borderRadius="md"
           display="flex"
           alignItems="center"
@@ -189,14 +180,15 @@ export const ActivePlayerArea = ({
         bottom={0}
         left={0}
         right={0}
-        bg="white"
-        boxShadow="0 -4px 6px -1px rgba(0, 0, 0, 0.1)"
+        bg="repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 2px, transparent 2px, transparent 90px), repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 14px), linear-gradient(180deg, #5a3d26 0%, #4a3220 45%, #3e2a1a 100%)"
+        borderTop="3px solid rgba(217, 180, 91, 0.6)"
+        boxShadow="0 -6px 18px rgba(6, 22, 15, 0.55)"
         p={2}
         zIndex={10}
       >
         <VStack spacing={2} align="stretch">
           <HStack justify="space-between" align="center">
-            <Text fontSize="sm" fontWeight="bold" color="blue.600" noOfLines={1}>
+            <Text fontSize="sm" fontWeight="bold" color="tableGold.300" noOfLines={1} fontFamily="Georgia, 'Times New Roman', serif">
               {title}
             </Text>
             <HStack spacing={1} flexShrink={0}>
@@ -214,9 +206,9 @@ export const ActivePlayerArea = ({
           </HStack>
 
           <HStack spacing={2} overflowX="auto">
-            <Box bg="orange.50" px={2} py={1.5} borderRadius="md" border="1px solid" borderColor="orange.100" flexShrink={0}>
+            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={2} py={1.5} borderRadius="md" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)" flexShrink={0}>
               <VStack spacing={1} align="start">
-                <Text fontSize="2xs" fontWeight="bold" color="orange.600" textTransform="uppercase" letterSpacing="wide">
+                <Text fontSize="2xs" fontWeight="bold" color="ink.500" textTransform="uppercase" letterSpacing="wide">
                   Coins
                 </Text>
                 <HStack spacing={1.5}>
@@ -260,9 +252,9 @@ export const ActivePlayerArea = ({
               </VStack>
             </Box>
 
-            <Box bg="blue.50" px={2} py={1.5} borderRadius="md" border="1px solid" borderColor="blue.100" flexShrink={0}>
+            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={2} py={1.5} borderRadius="md" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)" flexShrink={0}>
               <VStack spacing={1} align="start">
-                <Text fontSize="2xs" fontWeight="bold" color="blue.600" textTransform="uppercase" letterSpacing="wide">
+                <Text fontSize="2xs" fontWeight="bold" color="ink.500" textTransform="uppercase" letterSpacing="wide">
                   Cards
                 </Text>
                 <HStack spacing={1.5}>
@@ -314,7 +306,10 @@ export const ActivePlayerArea = ({
           </HStack>
 
           <Button
-            colorScheme="blue"
+            colorScheme="yellow"
+            bg="tableGold.400"
+            color="ink.900"
+            _hover={{ bg: "tableGold.300" }}
             size="lg"
             w="100%"
             h="44px"
@@ -334,20 +329,21 @@ export const ActivePlayerArea = ({
       bottom={0}
       left={0}
       right={0}
-      bg="white"
-      boxShadow="0 -4px 6px -1px rgba(0, 0, 0, 0.1)"
+      bg="repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 2px, transparent 2px, transparent 90px), repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 14px), linear-gradient(180deg, #5a3d26 0%, #4a3220 45%, #3e2a1a 100%)"
+      borderTop="3px solid rgba(217, 180, 91, 0.6)"
+      boxShadow="0 -6px 18px rgba(6, 22, 15, 0.55)"
       p={3}
     >
       <HStack justify="space-between" align="start" spacing={6}>
         <VStack align="start" spacing={3} flex={1}>
-          <Text fontSize="lg" fontWeight="bold" color="blue.600">
+          <Text fontSize="lg" fontWeight="bold" color="tableGold.300" fontFamily="Georgia, 'Times New Roman', serif">
             {title}
           </Text>
 
           <HStack spacing={4} w="100%" align="start">
-            <Box bg="orange.50" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="orange.100">
+            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)">
               <VStack align="start">
-                <Text fontSize="xs" fontWeight="bold" color="orange.600" textTransform="uppercase" letterSpacing="wide">
+                <Text fontSize="xs" fontWeight="bold" color="ink.500" textTransform="uppercase" letterSpacing="wide">
                   Coins
                 </Text>
                 <HStack spacing={3}>
@@ -394,9 +390,9 @@ export const ActivePlayerArea = ({
               </VStack>
             </Box>
 
-            <Box bg="blue.50" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="blue.100">
+            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)">
               <VStack align="start">
-                <Text fontSize="xs" fontWeight="bold" color="blue.600" textTransform="uppercase" letterSpacing="wide">
+                <Text fontSize="xs" fontWeight="bold" color="ink.500" textTransform="uppercase" letterSpacing="wide">
                   Cards
                 </Text>
                 <HStack spacing={3}>
@@ -445,9 +441,9 @@ export const ActivePlayerArea = ({
               </VStack>
             </Box>
 
-            <Box bg="gray.50" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="gray.100">
+            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={3} py={2} borderRadius="lg" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)">
               <VStack align="start">
-                <Text fontSize="xs" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide">
+                <Text fontSize="xs" fontWeight="bold" color="ink.500" textTransform="uppercase" letterSpacing="wide">
                   Reserved ({activePlayer.reservedCards.length}/3)
                 </Text>
                 <HStack spacing={2}>
@@ -461,7 +457,7 @@ export const ActivePlayerArea = ({
                     />
                   ))}
                   {activePlayer.reservedCards.length === 0 && (
-                    <Text fontSize="sm" color="gray.400">None</Text>
+                    <Text fontSize="sm" color="ink.500" opacity={0.6}>None</Text>
                   )}
                 </HStack>
               </VStack>
@@ -470,7 +466,10 @@ export const ActivePlayerArea = ({
         </VStack>
 
         <Button
-          colorScheme="blue"
+          colorScheme="yellow"
+          bg="tableGold.400"
+          color="ink.900"
+          _hover={{ bg: "tableGold.300" }}
           size="lg"
           onClick={handleEndTurn}
           isDisabled={resolvedInteractionDisabled}
