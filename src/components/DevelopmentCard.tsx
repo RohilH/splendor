@@ -3,7 +3,6 @@ import type { Card } from "../types/game";
 import { gemChipColors, gemImages } from "../utils/constants";
 import {
   BOARD_CARD_WIDTH,
-  BOARD_CARD_WIDTH_MOBILE,
   getCardArtworkDataUri,
   getCardCostEntries,
   getCardInkColor,
@@ -17,7 +16,7 @@ interface DevelopmentCardProps {
 
 const SIZES = {
   board: {
-    width: [BOARD_CARD_WIDTH_MOBILE, null, BOARD_CARD_WIDTH],
+    width: ["100%", null, BOARD_CARD_WIDTH],
     pointsSize: "clamp(11px, 18cqw, 28px)",
     bonusSize: "clamp(11px, 16cqw, 26px)",
     costSize: "clamp(10px, 14cqw, 22px)",
@@ -51,8 +50,6 @@ export const DevelopmentCard = ({
   return (
     <Box
       w={dims.width}
-      maxW="100%"
-      maxH="100%"
       sx={{ aspectRatio: "140 / 190", containerType: "inline-size" }}
       borderRadius={["6px", null, "10px"]}
       overflow="hidden"

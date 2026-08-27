@@ -182,11 +182,11 @@ export const ActivePlayerArea = ({
         borderTop="3px solid rgba(217, 180, 91, 0.6)"
         boxShadow="0 -6px 18px rgba(6, 22, 15, 0.55)"
         px={2}
-        py={1.5}
-        pb="max(6px, env(safe-area-inset-bottom))"
+        py={1}
+        pb="max(4px, env(safe-area-inset-bottom))"
         zIndex={10}
       >
-        <VStack spacing={1.5} align="stretch">
+        <VStack spacing={1} align="stretch">
           <HStack justify="space-between" align="center" spacing={2}>
             <Text fontSize="xs" fontWeight="bold" color="tableGold.300" noOfLines={1} fontFamily="Georgia, 'Times New Roman', serif">
               {title}
@@ -310,9 +310,9 @@ export const ActivePlayerArea = ({
             bg="tableGold.400"
             color="ink.900"
             _hover={{ bg: "tableGold.300" }}
-            size="md"
+            size="sm"
             w="100%"
-            h="40px"
+            h="32px"
             onClick={handleEndTurn}
             isDisabled={resolvedInteractionDisabled}
           >

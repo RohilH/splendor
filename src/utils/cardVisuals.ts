@@ -67,11 +67,11 @@ export const BOARD_CARD_WIDTH =
   "clamp(96px, min(10.5vw, (100vh - 336px) * 0.2456), 150px)";
 
 /**
- * Mobile card width: fill a 4-column grid cell, but never exceed the row
- * height (100cqh is the card-row container). No 96px floor — that overflowed
- * and clipped the fourth card on phones.
+ * Mobile card width: shrink to fit three rows in the board column
+ * (100cqh). Capped by the parent grid cell via max-width: 100%.
  */
-export const BOARD_CARD_WIDTH_MOBILE = "min(100%, calc(100cqh * 140 / 190))";
+export const BOARD_CARD_WIDTH_MOBILE =
+  "max(3.5rem, calc((100cqh - 72px) / 3 * 140 / 190))";
 export const levelRomanNumerals: Record<Card["level"], string> = {
   1: "I",
   2: "II",

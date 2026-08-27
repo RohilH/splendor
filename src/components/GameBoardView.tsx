@@ -160,10 +160,13 @@ export const GameBoardView = ({
               gridArea="board"
               gap={[1, null, 4]}
               align="stretch"
+              justify="flex-start"
               h={["100%", null, "auto"]}
               minH={0}
               minW={0}
-              sx={{ containerType: "size" }}
+              w="100%"
+              overflowY={["auto", null, "visible"]}
+              sx={{ containerType: ["size", null, "normal"] }}
             >
               <NobleArea nobles={nobles} />
 
@@ -173,8 +176,8 @@ export const GameBoardView = ({
                   <Flex
                     key={level}
                     gap={[1, null, 3]}
-                    align={["center", null, "flex-start"]}
-                    flex={["1", null, "none"]}
+                    align={["stretch", null, "flex-start"]}
+                    flex="none"
                     minH={0}
                     minW={0}
                   >

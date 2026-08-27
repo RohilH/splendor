@@ -13,7 +13,7 @@ interface NobleTileProps {
 const SIZES = {
   board: {
     tile: [
-      "clamp(40px, min(16cqh, 18vw), 68px)",
+      "clamp(44px, 14vw, 64px)",
       null,
       "clamp(84px, min(8vw, 12.2vh), 110px)",
     ],
