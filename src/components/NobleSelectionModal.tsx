@@ -43,8 +43,7 @@ export const NobleSelectionModal = ({
           <VStack spacing={5}>
             <Text fontSize="sm" color="ink.500" textAlign="center">
               The noble you pick is yours for the rest of the game — nobody else
-              can claim it. The other{" "}
-              {nobles.length > 2 ? "nobles stay" : "noble stays"} on the board.
+              can claim it. Any noble you leave behind stays on the board.
             </Text>
 
             <SimpleGrid columns={2} spacing={5} justifyItems="center">

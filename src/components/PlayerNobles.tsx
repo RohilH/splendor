@@ -1,4 +1,4 @@
-import { Flex, HStack, Text, Tooltip, VStack } from "@chakra-ui/react";
+import { Box, Flex, HStack, Text, Tooltip, VStack } from "@chakra-ui/react";
 import type { Noble } from "../types/game";
 import { GEM_ORDER } from "../utils/constants";
 import { NobleTile } from "./NobleTile";
@@ -54,7 +54,10 @@ export const PlayerNobles = ({ nobles }: PlayerNoblesProps) => {
               noble
             )}. Claimed for the rest of the game.`}
           >
-            <NobleTile noble={noble} size="mat" />
+            {/* Tooltip needs a ref-forwarding child, which NobleTile is not. */}
+            <Box>
+              <NobleTile noble={noble} size="mat" />
+            </Box>
           </Tooltip>
         ))}
       </Flex>
