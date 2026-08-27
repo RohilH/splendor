@@ -148,7 +148,9 @@ export const LocalGameScreen = ({ onRestart }: LocalGameScreenProps) => {
   };
 
   const handleSelectNoble = (noble: Noble) => {
-    const nobleIndex = gameState.availableNobles.findIndex((n) => n === noble);
+    const nobleIndex = gameState.availableNobles.findIndex(
+      (candidate) => candidate.id === noble.id,
+    );
     if (nobleIndex >= 0) {
       dispatch({ type: "select_noble", nobleIndex });
     }

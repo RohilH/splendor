@@ -95,6 +95,21 @@ const checkNoblesForPlayer = (
     })
   );
 
+/**
+ * Permanently move a noble from the board to the player who earned it. Matching
+ * is by id because `state.availableNobles` and `state.nobles` are separate
+ * copies after the state is cloned, so reference equality would silently leave
+ * a claimed noble on the board for someone else to claim again.
+ */
+const claimNoble = (
+  state: GameServerState,
+  player: OnlinePlayer,
+  noble: Noble
+): void => {
+  player.nobles.push(noble);
+  state.nobles = state.nobles.filter((poolNoble) => poolNoble.id !== noble.id);
+};
+
 const completeEndTurn = (state: GameServerState): void => {
   const nextPlayer = (state.currentPlayer + 1) % state.players.length;
   state.availableNobles = [];
@@ -132,9 +147,7 @@ const resolveNoblesAndTurn = (state: GameServerState, playerIndex: number): void
   }
 
   if (qualifiedNobles.length === 1) {
-    const noble = qualifiedNobles[0];
-    player.nobles.push(noble);
-    state.nobles = state.nobles.filter((poolNoble) => poolNoble !== noble);
+    claimNoble(state, player, qualifiedNobles[0]);
     completeEndTurn(state);
     return;
   }
@@ -284,9 +297,7 @@ export const applyGameAction = (
     }
 
     const selectedNoble = state.availableNobles[action.nobleIndex];
-    const player = state.players[actorPlayerIndex];
-    player.nobles.push(selectedNoble);
-    state.nobles = state.nobles.filter((noble) => noble !== selectedNoble);
+    claimNoble(state, state.players[actorPlayerIndex], selectedNoble);
     completeEndTurn(state);
 
     return finalizeActionState(state);

@@ -16,8 +16,8 @@ export const NobleArea = ({ nobles }: NobleAreaProps) => {
       overflowX={["auto", null, "visible"]}
       pb={[1, null, 0]}
     >
-      {nobles.map((noble, index) => (
-        <NobleTile key={index} noble={noble} />
+      {nobles.map((noble) => (
+        <NobleTile key={noble.id} noble={noble} />
       ))}
     </Flex>
   );

@@ -18,6 +18,10 @@ function makeCard(overrides: Partial<Card> = {}): Card {
   };
 }
 
+function makeNoble(id: string, requirements: Noble["requirements"]): Noble {
+  return { id, points: 3, requirements };
+}
+
 function withPlayerGems(
   state: GameServerState,
   playerIndex: number,
@@ -370,7 +374,7 @@ describe("reserve card parity rules", () => {
 describe("noble resolution parity rules", () => {
   it("single qualifying noble advances exactly one turn", () => {
     let state = createInitialGameState(createPlayers());
-    const noble: Noble = { points: 3, requirements: { diamond: 3 } };
+    const noble = makeNoble("diamond-noble", { diamond: 3 });
     state = withNobles(state, [noble]);
     state = withPlayerCards(state, 0, [
       makeCard({ gem: "diamond" }),
@@ -396,8 +400,8 @@ describe("noble resolution parity rules", () => {
 
   it("multiple qualifying nobles pause for selection", () => {
     let state = createInitialGameState(createPlayers());
-    const noble1: Noble = { points: 3, requirements: { diamond: 3 } };
-    const noble2: Noble = { points: 3, requirements: { ruby: 2 } };
+    const noble1 = makeNoble("diamond-noble", { diamond: 3 });
+    const noble2 = makeNoble("ruby-noble", { ruby: 2 });
     state = withNobles(state, [noble1, noble2]);
     state = withPlayerCards(state, 0, [
       makeCard({ gem: "diamond" }),
@@ -418,8 +422,8 @@ describe("noble resolution parity rules", () => {
 
   it("noble selection completes the paused turn", () => {
     let state = createInitialGameState(createPlayers());
-    const noble1: Noble = { points: 3, requirements: { diamond: 3 } };
-    const noble2: Noble = { points: 3, requirements: { ruby: 2 } };
+    const noble1 = makeNoble("diamond-noble", { diamond: 3 });
+    const noble2 = makeNoble("ruby-noble", { ruby: 2 });
     state = withNobles(state, [noble1, noble2]);
     state = withPlayerCards(state, 0, [
       makeCard({ gem: "diamond" }),
@@ -443,6 +447,73 @@ describe("noble resolution parity rules", () => {
     expect(selectResult.state.currentPlayer).toBe(1);
   });
 
+  it("a selected noble leaves the board and the unchosen one stays", () => {
+    let state = createInitialGameState(createPlayers());
+    const noble1 = makeNoble("diamond-noble", { diamond: 3 });
+    const noble2 = makeNoble("ruby-noble", { ruby: 2 });
+    state = withNobles(state, [noble1, noble2]);
+    state = withPlayerCards(state, 0, [
+      makeCard({ gem: "diamond" }),
+      makeCard({ gem: "diamond" }),
+      makeCard({ gem: "diamond" }),
+      makeCard({ gem: "ruby" }),
+      makeCard({ gem: "ruby" }),
+    ]);
+
+    const paused = applyGameAction(state, "u1", { type: "end_turn" });
+    const claimedId = paused.state.availableNobles[0].id;
+    const selectResult = applyGameAction(paused.state, "u1", {
+      type: "select_noble",
+      nobleIndex: 0,
+    });
+
+    expect(selectResult.state.players[0].nobles.map((n) => n.id)).toEqual([
+      claimedId,
+    ]);
+    expect(selectResult.state.nobles.map((n) => n.id)).toEqual([
+      claimedId === noble1.id ? noble2.id : noble1.id,
+    ]);
+  });
+
+  it("a claimed noble cannot be claimed again by another player", () => {
+    let state = createInitialGameState(createPlayers());
+    const shared = makeNoble("shared-noble", { diamond: 3 });
+    const extra = makeNoble("ruby-noble", { ruby: 2 });
+    state = withNobles(state, [shared, extra]);
+    // Both players qualify for `shared`; only the first player also qualifies
+    // for `extra`, so player 0 is the one who gets to choose.
+    const diamonds = [
+      makeCard({ gem: "diamond" }),
+      makeCard({ gem: "diamond" }),
+      makeCard({ gem: "diamond" }),
+    ];
+    state = withPlayerCards(state, 0, [
+      ...diamonds,
+      makeCard({ gem: "ruby" }),
+      makeCard({ gem: "ruby" }),
+    ]);
+    state = withPlayerCards(state, 1, diamonds);
+
+    const paused = applyGameAction(state, "u1", { type: "end_turn" });
+    const firstPick = paused.state.availableNobles.findIndex(
+      (noble) => noble.id === shared.id
+    );
+    const claimed = applyGameAction(paused.state, "u1", {
+      type: "select_noble",
+      nobleIndex: firstPick,
+    });
+
+    const secondPlayerTurn = applyGameAction(claimed.state, "u2", {
+      type: "end_turn",
+    });
+
+    expect(secondPlayerTurn.state.players[0].nobles.map((n) => n.id)).toEqual([
+      shared.id,
+    ]);
+    expect(secondPlayerTurn.state.players[1].nobles).toHaveLength(0);
+    expect(secondPlayerTurn.state.nobles.map((n) => n.id)).toEqual([extra.id]);
+  });
+
   it("noble selection is rejected when not pending", () => {
     const state = createInitialGameState(createPlayers());
     const result = applyGameAction(state, "u1", {
@@ -454,8 +525,8 @@ describe("noble resolution parity rules", () => {
 
   it("noble selection rejects invalid index", () => {
     let state = createInitialGameState(createPlayers());
-    const noble1: Noble = { points: 3, requirements: { diamond: 3 } };
-    const noble2: Noble = { points: 3, requirements: { ruby: 2 } };
+    const noble1 = makeNoble("diamond-noble", { diamond: 3 });
+    const noble2 = makeNoble("ruby-noble", { ruby: 2 });
     state = withNobles(state, [noble1, noble2]);
     state = withPlayerCards(state, 0, [
       makeCard({ gem: "diamond" }),
@@ -475,8 +546,8 @@ describe("noble resolution parity rules", () => {
 
   it("non-active player cannot select a noble", () => {
     let state = createInitialGameState(createPlayers());
-    const noble1: Noble = { points: 3, requirements: { diamond: 3 } };
-    const noble2: Noble = { points: 3, requirements: { ruby: 2 } };
+    const noble1 = makeNoble("diamond-noble", { diamond: 3 });
+    const noble2 = makeNoble("ruby-noble", { ruby: 2 });
     state = withNobles(state, [noble1, noble2]);
     state = withPlayerCards(state, 0, [
       makeCard({ gem: "diamond" }),

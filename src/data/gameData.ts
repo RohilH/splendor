@@ -130,16 +130,20 @@ export const level3Cards: Card[] = [
   card(3, 'ruby', 5, 0, 0, 7, 3, 0),
 ];
 
+function noble(id: string, requirements: Partial<Record<Gem, number>>): Noble {
+  return { id, points: 3, requirements };
+}
+
 // Official Splendor nobles (10 total)
 export const nobles: Noble[] = [
-  { points: 3, requirements: { onyx: 3, sapphire: 3, diamond: 3 } },
-  { points: 3, requirements: { emerald: 3, sapphire: 3, ruby: 3 } },
-  { points: 3, requirements: { emerald: 3, sapphire: 3, diamond: 3 } },
-  { points: 3, requirements: { onyx: 3, ruby: 3, diamond: 3 } },
-  { points: 3, requirements: { onyx: 3, emerald: 3, ruby: 3 } },
-  { points: 3, requirements: { diamond: 4, sapphire: 4 } },
-  { points: 3, requirements: { onyx: 4, diamond: 4 } },
-  { points: 3, requirements: { sapphire: 4, emerald: 4 } },
-  { points: 3, requirements: { onyx: 4, ruby: 4 } },
-  { points: 3, requirements: { emerald: 4, ruby: 4 } },
+  noble('noble-anne', { onyx: 3, sapphire: 3, diamond: 3 }),
+  noble('noble-catherine', { emerald: 3, sapphire: 3, ruby: 3 }),
+  noble('noble-elisabeth', { emerald: 3, sapphire: 3, diamond: 3 }),
+  noble('noble-francis', { onyx: 3, ruby: 3, diamond: 3 }),
+  noble('noble-henry', { onyx: 3, emerald: 3, ruby: 3 }),
+  noble('noble-isabella', { diamond: 4, sapphire: 4 }),
+  noble('noble-charles', { onyx: 4, diamond: 4 }),
+  noble('noble-macchiavelli', { sapphire: 4, emerald: 4 }),
+  noble('noble-suleiman', { onyx: 4, ruby: 4 }),
+  noble('noble-mary', { emerald: 4, ruby: 4 }),
 ];

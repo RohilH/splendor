@@ -94,7 +94,11 @@ describe("stateAbstraction", () => {
 
   it("computes noble distance as the smallest bonus shortfall", () => {
     const gs = clone(createGame());
-    const noble: Noble = { points: 3, requirements: { ruby: 3, emerald: 3 } };
+    const noble: Noble = {
+      id: "ruby-emerald-noble",
+      points: 3,
+      requirements: { ruby: 3, emerald: 3 },
+    };
     gs.nobles = [noble];
     // 4 ruby bonuses (surplus ignored) + 1 emerald bonus → missing 2 emeralds.
     gs.players[0].purchasedCards = [

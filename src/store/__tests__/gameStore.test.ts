@@ -28,6 +28,10 @@ function makeCard(overrides: Partial<Card> = {}): Card {
   };
 }
 
+function makeNoble(id: string, requirements: Noble["requirements"]): Noble {
+  return { id, points: 3, requirements };
+}
+
 function setGameState(
   patch: Partial<ReturnType<typeof gs>>
 ) {
@@ -437,7 +441,7 @@ describe("Noble Logic (via dispatch)", () => {
   beforeEach(() => initGame(2));
 
   it("single qualifying noble is auto-assigned and advances exactly one turn", () => {
-    const noble: Noble = { points: 3, requirements: { diamond: 3 } };
+    const noble = makeNoble("diamond-noble", { diamond: 3 });
     setGameState({ nobles: [noble] });
     givePlayerCards(0, [
       makeCard({ gem: "diamond" }),
@@ -454,8 +458,8 @@ describe("Noble Logic (via dispatch)", () => {
   });
 
   it("multiple qualifying nobles show selection modal", () => {
-    const noble1: Noble = { points: 3, requirements: { diamond: 3 } };
-    const noble2: Noble = { points: 3, requirements: { ruby: 2 } };
+    const noble1 = makeNoble("diamond-noble", { diamond: 3 });
+    const noble2 = makeNoble("ruby-noble", { ruby: 2 });
     setGameState({ nobles: [noble1, noble2] });
     givePlayerCards(0, [
       makeCard({ gem: "diamond" }),
@@ -473,8 +477,8 @@ describe("Noble Logic (via dispatch)", () => {
   });
 
   it("selecting a noble completes the paused turn", () => {
-    const noble1: Noble = { points: 3, requirements: { diamond: 3 } };
-    const noble2: Noble = { points: 3, requirements: { ruby: 2 } };
+    const noble1 = makeNoble("diamond-noble", { diamond: 3 });
+    const noble2 = makeNoble("ruby-noble", { ruby: 2 });
     setGameState({ nobles: [noble1, noble2] });
     givePlayerCards(0, [
       makeCard({ gem: "diamond" }),
@@ -492,6 +496,27 @@ describe("Noble Logic (via dispatch)", () => {
     expect(gs().showNobleSelection).toBe(false);
     expect(gs().players[0].nobles).toHaveLength(1);
     expect(gs().currentPlayer).toBe(1);
+  });
+
+  it("the chosen noble leaves the board and the unchosen one stays", () => {
+    const noble1 = makeNoble("diamond-noble", { diamond: 3 });
+    const noble2 = makeNoble("ruby-noble", { ruby: 2 });
+    setGameState({ nobles: [noble1, noble2] });
+    givePlayerCards(0, [
+      makeCard({ gem: "diamond" }),
+      makeCard({ gem: "diamond" }),
+      makeCard({ gem: "diamond" }),
+      makeCard({ gem: "ruby" }),
+      makeCard({ gem: "ruby" }),
+    ]);
+
+    endTurn();
+    dispatch({ type: "select_noble", nobleIndex: 0 });
+
+    const claimedId = gs().players[0].nobles[0].id;
+    expect(gs().nobles.map((noble) => noble.id)).toEqual([
+      claimedId === noble1.id ? noble2.id : noble1.id,
+    ]);
   });
 
   it("noble selection is rejected when not pending", () => {
