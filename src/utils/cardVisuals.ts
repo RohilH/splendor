@@ -57,14 +57,21 @@ const artworkPalettes: Record<
 };
 
 /**
- * Width of a board development card (and deck back). Tracks viewport width,
- * but also shrinks with viewport height so the nobles row, three card rows,
- * and the wood rail all fit on screen without scrolling (the 336px term is
- * the fixed vertical overhead around the card rows; 0.2456 = (140/190)/3).
+ * Width of a board development card (and deck back) on md+ layouts. Tracks
+ * viewport width, but also shrinks with viewport height so the nobles row,
+ * three card rows, and the wood rail all fit on screen without scrolling
+ * (the 336px term is the fixed vertical overhead around the card rows;
+ * 0.2456 = (140/190)/3).
  */
 export const BOARD_CARD_WIDTH =
   "clamp(96px, min(10.5vw, (100vh - 336px) * 0.2456), 150px)";
 
+/**
+ * Mobile card width: fill a 4-column grid cell, but never exceed the row
+ * height (100cqh is the card-row container). No 96px floor — that overflowed
+ * and clipped the fourth card on phones.
+ */
+export const BOARD_CARD_WIDTH_MOBILE = "min(100%, calc(100cqh * 140 / 190))";
 export const levelRomanNumerals: Record<Card["level"], string> = {
   1: "I",
   2: "II",

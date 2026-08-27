@@ -53,8 +53,8 @@ const CardSummary = ({
         }
       >
         <Box
-          w="40px"
-          h="56px"
+          w={["32px", null, "40px"]}
+          h={["44px", null, "56px"]}
           bg={bankGemColors[card.gem].bg}
           borderRadius="md"
           display="flex"
@@ -176,19 +176,19 @@ export const ActivePlayerArea = ({
   if (isMobile) {
     return (
       <Box
-        position="fixed"
-        bottom={0}
-        left={0}
-        right={0}
+        position="relative"
+        flexShrink={0}
         bg="repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 2px, transparent 2px, transparent 90px), repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 14px), linear-gradient(180deg, #5a3d26 0%, #4a3220 45%, #3e2a1a 100%)"
         borderTop="3px solid rgba(217, 180, 91, 0.6)"
         boxShadow="0 -6px 18px rgba(6, 22, 15, 0.55)"
-        p={2}
+        px={2}
+        py={1.5}
+        pb="max(6px, env(safe-area-inset-bottom))"
         zIndex={10}
       >
-        <VStack spacing={2} align="stretch">
-          <HStack justify="space-between" align="center">
-            <Text fontSize="sm" fontWeight="bold" color="tableGold.300" noOfLines={1} fontFamily="Georgia, 'Times New Roman', serif">
+        <VStack spacing={1.5} align="stretch">
+          <HStack justify="space-between" align="center" spacing={2}>
+            <Text fontSize="xs" fontWeight="bold" color="tableGold.300" noOfLines={1} fontFamily="Georgia, 'Times New Roman', serif">
               {title}
             </Text>
             <HStack spacing={1} flexShrink={0}>
@@ -206,8 +206,8 @@ export const ActivePlayerArea = ({
           </HStack>
 
           <HStack spacing={2} overflowX="auto">
-            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={2} py={1.5} borderRadius="md" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)" flexShrink={0}>
-              <VStack spacing={1} align="start">
+            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={2} py={1} borderRadius="md" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)" flexShrink={0}>
+              <VStack spacing={0.5} align="start">
                 <Text fontSize="2xs" fontWeight="bold" color="ink.500" textTransform="uppercase" letterSpacing="wide">
                   Coins
                 </Text>
@@ -216,8 +216,8 @@ export const ActivePlayerArea = ({
                     ([gem, count]) => (
                       <Box
                         key={gem}
-                        w="22px"
-                        h="22px"
+                        w="20px"
+                        h="20px"
                         bg={bankGemColors[gem].bg}
                         borderRadius="full"
                         display="flex"
@@ -252,8 +252,8 @@ export const ActivePlayerArea = ({
               </VStack>
             </Box>
 
-            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={2} py={1.5} borderRadius="md" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)" flexShrink={0}>
-              <VStack spacing={1} align="start">
+            <Box bg="linear-gradient(160deg, rgba(249, 244, 232, 0.94) 0%, rgba(234, 223, 198, 0.94) 100%)" px={2} py={1} borderRadius="md" border="1px solid" borderColor="rgba(111, 86, 45, 0.35)" flexShrink={0}>
+              <VStack spacing={0.5} align="start">
                 <Text fontSize="2xs" fontWeight="bold" color="ink.500" textTransform="uppercase" letterSpacing="wide">
                   Cards
                 </Text>
@@ -263,8 +263,8 @@ export const ActivePlayerArea = ({
                       <Box
                         key={gem}
                         position="relative"
-                        w="22px"
-                        h="28px"
+                        w="20px"
+                        h="26px"
                         bg={bankGemColors[gem].bg}
                         borderRadius="sm"
                         display="flex"
@@ -310,9 +310,9 @@ export const ActivePlayerArea = ({
             bg="tableGold.400"
             color="ink.900"
             _hover={{ bg: "tableGold.300" }}
-            size="lg"
+            size="md"
             w="100%"
-            h="44px"
+            h="40px"
             onClick={handleEndTurn}
             isDisabled={resolvedInteractionDisabled}
           >

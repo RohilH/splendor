@@ -22,20 +22,36 @@ export const CardField = ({
   return (
     <Box
       display={["grid", null, "flex"]}
-      gridTemplateColumns="repeat(4, 1fr)"
-      gap={[1.5, null, 3]}
+      gridTemplateColumns="repeat(4, minmax(0, 1fr))"
+      gap={[1, null, 3]}
       w="100%"
-      alignItems={["stretch", null, "start"]}
+      h={["100%", null, "auto"]}
+      minH={0}
+      minW={0}
+      alignItems="center"
+      justifyItems="center"
+      sx={{ containerType: "size" }}
     >
       {cards.map((card: Card, index: number) => (
         <motion.div
           key={index}
           whileHover={{ y: -4 }}
           transition={{ type: "spring", stiffness: 400, damping: 26 }}
-          style={{ position: "relative", flexShrink: 0 }}
+          style={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            minWidth: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
         >
           <Box
             position="relative"
+            h="auto"
+            maxH="100%"
+            maxW="100%"
             _hover={{
               "& > .card-actions": {
                 opacity: 1,
@@ -53,14 +69,14 @@ export const CardField = ({
               bottom={0}
               opacity={0}
               transition="all 0.2s"
-              spacing={2}
+              spacing={1}
               justify="center"
               bg="blackAlpha.700"
-              borderRadius="10px"
-              p={[2, null, 3]}
+              borderRadius={["6px", null, "10px"]}
+              p={[1, null, 3]}
             >
               <Button
-                size="sm"
+                size={["xs", null, "sm"]}
                 width="full"
                 colorScheme="yellow"
                 bg="tableGold.400"
@@ -72,7 +88,7 @@ export const CardField = ({
                 {canAfford(card) ? "Purchase" : "Can't Afford"}
               </Button>
               <Button
-                size="sm"
+                size={["xs", null, "sm"]}
                 width="full"
                 variant="outline"
                 color="parchment.100"
