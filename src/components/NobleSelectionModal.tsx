@@ -5,6 +5,8 @@ import {
   ModalHeader,
   ModalBody,
   SimpleGrid,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
 import { Noble } from "../types/game";
 import { NobleTile } from "./NobleTile";
@@ -33,20 +35,28 @@ export const NobleSelectionModal = ({
           textAlign="center"
           fontFamily="Georgia, 'Times New Roman', serif"
           color="ink.900"
+          pb={1}
         >
           Select a Noble to Visit You
         </ModalHeader>
-        <ModalBody p={6}>
-          <SimpleGrid columns={2} spacing={5} justifyItems="center">
-            {nobles.map((noble, index) => (
-              <NobleTile
-                key={index}
-                noble={noble}
-                size="modal"
-                onClick={() => onSelect(noble)}
-              />
-            ))}
-          </SimpleGrid>
+        <ModalBody p={6} pt={2}>
+          <VStack spacing={5}>
+            <Text fontSize="sm" color="ink.500" textAlign="center">
+              The noble you pick is yours for the rest of the game — nobody else
+              can claim it. Any noble you leave behind stays on the board.
+            </Text>
+
+            <SimpleGrid columns={2} spacing={5} justifyItems="center">
+              {nobles.map((noble) => (
+                <NobleTile
+                  key={noble.id}
+                  noble={noble}
+                  size="modal"
+                  onClick={() => onSelect(noble)}
+                />
+              ))}
+            </SimpleGrid>
+          </VStack>
         </ModalBody>
       </ModalContent>
     </Modal>

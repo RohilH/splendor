@@ -105,6 +105,12 @@ describe('Official Noble Data', () => {
     }
   });
 
+  it('every noble has a unique id', () => {
+    const ids = nobles.map(n => n.id);
+    expect(ids.every(id => id.length > 0)).toBe(true);
+    expect(new Set(ids).size).toBe(nobles.length);
+  });
+
   it('no duplicate nobles', () => {
     const keys = nobles.map(n =>
       Object.entries(n.requirements)

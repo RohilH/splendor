@@ -125,14 +125,18 @@ export const OnlineGameScreen = ({
       onSelectNoble={(noble) =>
         sendGameAction({
           type: "select_noble",
-          nobleIndex: gameState.availableNobles.findIndex((n) => n === noble),
+          nobleIndex: gameState.availableNobles.findIndex(
+            (candidate) => candidate.id === noble.id
+          ),
         })
       }
       onRestart={onLeaveGame}
       title={
-        isMyTurn
-          ? "Your Turn"
-          : `Waiting for ${currentPlayer?.name ?? "opponent"}`
+        isMyNobleSelection
+          ? "Choose a noble"
+          : isMyTurn
+            ? "Your Turn"
+            : `Waiting for ${currentPlayer?.name ?? "opponent"}`
       }
       primaryActionLabel={
         isMyTurn

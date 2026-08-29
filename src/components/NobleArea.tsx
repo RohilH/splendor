@@ -16,8 +16,8 @@ export const NobleArea = ({ nobles }: NobleAreaProps) => {
       overflow="hidden"
       flexShrink={0}
     >
-      {nobles.map((noble, index) => (
-        <NobleTile key={index} noble={noble} />
+      {nobles.map((noble) => (
+        <NobleTile key={noble.id} noble={noble} />
       ))}
     </Flex>
   );

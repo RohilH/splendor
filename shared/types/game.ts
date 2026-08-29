@@ -16,6 +16,12 @@ export interface Card {
 }
 
 export interface Noble {
+  /**
+   * Stable identity for a noble tile. Game state is deep-cloned (and sent over
+   * the wire) between actions, so nobles must be matched by id rather than by
+   * object reference when they are claimed and removed from the board.
+   */
+  id: string;
   points: number;
   requirements: Partial<Record<Exclude<GemType, "gold">, number>>;
 }

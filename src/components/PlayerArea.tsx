@@ -14,6 +14,7 @@ import {
 import type { PlayerPointView } from "../../shared/game/selectors";
 import { Player, GemType } from "../types/game";
 import { bankGemColors } from "../utils/constants";
+import { PlayerNobles } from "./PlayerNobles";
 
 interface PlayerAreaProps {
   player: Player;
@@ -186,6 +187,8 @@ export const PlayerArea = ({
               )}
             </Box>
           </HStack>
+
+          <PlayerNobles nobles={player.nobles} />
         </VStack>
       </Box>
     );
@@ -350,6 +353,8 @@ export const PlayerArea = ({
             </Box>
           </VStack>
         </SimpleGrid>
+
+        <PlayerNobles nobles={player.nobles} />
       </VStack>
     </Box>
   );
