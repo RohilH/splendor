@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer";
 
-const URL = "http://localhost:5173/";
+const URL = process.env.E2E_BASE_URL || "http://localhost:5173/";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -59,21 +59,23 @@ async function joinRoom(page, roomCode) {
   await clickButtonByText(page, "Join Room");
 }
 
-async function clickPlusButton(page, buttonIndex = 0) {
-  const clicked = await page.evaluate((index) => {
-    const plusButtons = Array.from(document.querySelectorAll("button")).filter(
-      (button) => button.textContent?.trim() === "+"
+async function clickGemChip(page, gemType) {
+  const clicked = await page.evaluate((gem) => {
+    const gemImages = Array.from(
+      document.querySelectorAll(`img[alt="${gem}"]`)
     );
-    const target = plusButtons[index];
-    if (!target || target.hasAttribute("disabled")) {
-      return false;
+    for (const img of gemImages) {
+      const chip = img.parentElement;
+      if (chip && getComputedStyle(chip).cursor === "pointer") {
+        chip.click();
+        return true;
+      }
     }
-    target.click();
-    return true;
-  }, buttonIndex);
+    return false;
+  }, gemType);
 
   if (!clicked) {
-    throw new Error("Unable to click gem increment button.");
+    throw new Error(`Unable to click gem chip "${gemType}".`);
   }
   await sleep(100);
 }
@@ -115,19 +117,18 @@ async function run() {
     await waitForText(pageA, userB);
 
     await clickButtonByText(pageA, "Start Game");
-    await waitForText(pageA, "Current turn");
-    await waitForText(pageB, "Current turn");
+    await waitForText(pageA, "Your Turn");
+    await waitForText(pageB, `Waiting for ${userA}`);
 
-    await waitForText(pageA, `Current turn: ${userA}`);
+    await clickGemChip(pageA, "diamond");
+    await clickButtonByText(pageA, "Take Gems & End Turn");
 
-    await clickPlusButton(pageA, 0);
-    await clickButtonByText(pageA, "Take Gems");
-
-    await waitForText(pageB, `Current turn: ${userB}`);
+    await waitForText(pageB, "Your Turn");
+    await waitForText(pageA, `Waiting for ${userB}`);
 
     await clickButtonByText(pageB, "End Turn");
 
-    await waitForText(pageA, `Current turn: ${userA}`);
+    await waitForText(pageA, "Your Turn");
 
     console.log("Online multiplayer e2e passed.");
   } finally {
