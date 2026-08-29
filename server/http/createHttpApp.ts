@@ -3,6 +3,7 @@ import cors from "cors";
 import { AuthService } from "../auth/authService";
 import { createAuthRoutes } from "./authRoutes";
 import { isOriginAllowed } from "./originPolicy";
+import { attachStaticClient } from "./staticClient";
 
 export const createHttpApp = (
   authService: AuthService,
@@ -38,6 +39,13 @@ export const createHttpApp = (
     res.json({ ok: true, wsPath: "/ws" });
   });
   app.use("/api/auth", createAuthRoutes(authService));
+
+  const servingClient = attachStaticClient(app);
+  console.info(
+    servingClient
+      ? "[http] serving built frontend from dist/"
+      : "[http] no dist/ build found; serving API only"
+  );
 
   return app;
 };
