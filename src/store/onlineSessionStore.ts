@@ -7,6 +7,7 @@ import type {
 } from "../../shared/onlineTypes";
 import type {
   ClientToServerMessage,
+  GameActionResult,
   ServerToClientMessage,
 } from "../../shared/protocol/wsMessages";
 import { postJson } from "../network/httpClient";
@@ -54,6 +55,18 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let actionCounter = 0;
 const wsClient = new WsClient();
+
+type ActionResultListener = (result: GameActionResult) => void;
+let actionResultListener: ActionResultListener | null = null;
+
+export const onActionResult = (listener: ActionResultListener | null): (() => void) => {
+  actionResultListener = listener;
+  return () => {
+    if (actionResultListener === listener) {
+      actionResultListener = null;
+    }
+  };
+};
 
 const STORAGE_KEY = "splendor-online-session";
 const HEARTBEAT_INTERVAL_MS = 15000;
@@ -177,6 +190,10 @@ const connectSocket = (set: StoreSetter, get: () => OnlineSessionStore): void =>
 
         case "error":
           set({ error: message.message });
+          break;
+
+        case "game:action_result":
+          actionResultListener?.(message.result);
           break;
 
         case "pong":

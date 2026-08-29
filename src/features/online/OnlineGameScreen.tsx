@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertIcon } from "@chakra-ui/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   canAffordCard,
   calculatePlayerPoints,
@@ -9,7 +9,10 @@ import type {
   GemType,
   OnlineGameAction,
 } from "../../../shared/onlineTypes";
+import type { GameActionResult } from "../../../shared/protocol/wsMessages";
+import { ActionNotificationHost } from "../../components/ActionNotification";
 import { GameBoardView } from "../../components/GameBoardView";
+import { onActionResult } from "../../store/onlineSessionStore";
 import { createEmptyGemSelection } from "../../store/tempGemStore";
 
 interface OnlineGameScreenProps {
@@ -69,6 +72,11 @@ export const OnlineGameScreen = ({
     return true;
   };
 
+  const subscribeToActions = useCallback(
+    (handler: (r: GameActionResult) => void) => onActionResult(handler),
+    []
+  );
+
   if (!myPlayer) return null;
 
   const infoAlert =
@@ -84,6 +92,8 @@ export const OnlineGameScreen = ({
     ) : undefined;
 
   return (
+    <>
+    <ActionNotificationHost userId={userId} onSubscribe={subscribeToActions} />
     <GameBoardView
       players={gameState.players}
       currentPlayer={gameState.currentPlayer}
@@ -155,5 +165,6 @@ export const OnlineGameScreen = ({
           : player.name
       }
     />
+    </>
   );
 };

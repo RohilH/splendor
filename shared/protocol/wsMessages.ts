@@ -1,5 +1,20 @@
 import type { OnlineGameAction } from "../game/actions";
+import type { Card, GemType } from "../types/game";
 import type { GamePublicState, PublicRoomState, RoomState } from "../onlineTypes";
+
+export type ActionResultDetails =
+  | { type: "take_gems"; gems: Partial<Record<GemType, number>> }
+  | { type: "purchase_card"; card: Card }
+  | { type: "reserve_card"; level: 1 | 2 | 3; gotGold: boolean }
+  | { type: "purchase_reserved_card"; card: Card }
+  | { type: "end_turn" }
+  | { type: "select_noble"; noblePoints: number };
+
+export interface GameActionResult {
+  playerName: string;
+  playerId: string;
+  action: ActionResultDetails;
+}
 
 export type ClientToServerMessage =
   | { type: "auth"; token: string }
@@ -38,6 +53,10 @@ export type ServerToClientMessage =
   | {
       type: "error";
       message: string;
+    }
+  | {
+      type: "game:action_result";
+      result: GameActionResult;
     }
   | {
       type: "pong";
