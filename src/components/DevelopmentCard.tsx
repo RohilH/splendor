@@ -16,11 +16,11 @@ interface DevelopmentCardProps {
 
 const SIZES = {
   board: {
-    width: BOARD_CARD_WIDTH,
-    pointsSize: "clamp(20px, 2vw, 28px)",
-    bonusSize: "clamp(18px, 1.8vw, 26px)",
-    costSize: "clamp(17px, 1.7vw, 22px)",
-    costFont: "clamp(10px, 1vw, 13px)",
+    width: ["100%", null, BOARD_CARD_WIDTH],
+    pointsSize: "clamp(11px, 18cqw, 28px)",
+    bonusSize: "clamp(11px, 16cqw, 26px)",
+    costSize: "clamp(10px, 14cqw, 22px)",
+    costFont: "clamp(8px, 10cqw, 13px)",
     bandPadding: 2,
   },
   compact: {
@@ -31,7 +31,7 @@ const SIZES = {
     costFont: "9px",
     bandPadding: 1,
   },
-} as const;
+};
 
 /**
  * A Splendor development card styled after the physical game: full-bleed
@@ -50,8 +50,8 @@ export const DevelopmentCard = ({
   return (
     <Box
       w={dims.width}
-      sx={{ aspectRatio: "140 / 190" }}
-      borderRadius="10px"
+      sx={{ aspectRatio: "140 / 190", containerType: "inline-size" }}
+      borderRadius={["6px", null, "10px"]}
       overflow="hidden"
       position="relative"
       // Inline style: Chakra's backgroundImage transform corrupts long
@@ -61,7 +61,7 @@ export const DevelopmentCard = ({
       backgroundPosition="center"
       border="1px solid rgba(59, 50, 39, 0.55)"
       boxShadow="0 4px 10px rgba(10, 24, 18, 0.45), inset 0 0 0 2px rgba(249, 244, 232, 0.25)"
-      flexShrink={0}
+      flexShrink={[1, null, 0]}
     >
       {/* Prestige band */}
       <Flex
@@ -97,8 +97,8 @@ export const DevelopmentCard = ({
       {/* Cost circles */}
       <Flex
         position="absolute"
-        bottom="6px"
-        left="6px"
+        bottom={["4px", null, "6px"]}
+        left={["4px", null, "6px"]}
         direction="column-reverse"
         gap="3px"
       >
@@ -132,3 +132,4 @@ export const DevelopmentCard = ({
     </Box>
   );
 };
+

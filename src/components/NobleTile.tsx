@@ -13,16 +13,23 @@ interface NobleTileProps {
   onClick?: () => void;
 }
 
+const ORNATE_FRAME =
+  "0 4px 10px rgba(10, 24, 18, 0.5), inset 0 0 0 2px rgba(20, 14, 6, 0.55), inset 0 0 0 4px rgba(217, 180, 91, 0.75)";
+
 const SIZES = {
   board: {
-    tile: "clamp(84px, min(8vw, 12.2vh), 110px)",
+    tile: [
+      "clamp(44px, 14vw, 64px)",
+      null,
+      "clamp(84px, min(8vw, 12.2vh), 110px)",
+    ],
     strip: "34%",
-    points: "clamp(18px, 1.9vw, 26px)",
-    req: "clamp(15px, 1.5vw, 20px)",
-    reqFont: "clamp(9px, 0.9vw, 12px)",
-    radius: "10px",
-    frame:
-      "0 4px 10px rgba(10, 24, 18, 0.5), inset 0 0 0 2px rgba(20, 14, 6, 0.55), inset 0 0 0 4px rgba(217, 180, 91, 0.75)",
+    points: ["clamp(11px, 22cqw, 18px)", null, "clamp(18px, 1.9vw, 26px)"],
+    req: ["clamp(9px, 16cqw, 14px)", null, "clamp(15px, 1.5vw, 20px)"],
+    reqFont: ["clamp(7px, 12cqw, 10px)", null, "clamp(9px, 0.9vw, 12px)"],
+    radius: ["6px", null, "10px"],
+    border: "2px solid #b98a2f",
+    frame: ORNATE_FRAME,
     showRequirements: true,
   },
   modal: {
@@ -31,9 +38,9 @@ const SIZES = {
     points: "30px",
     req: "24px",
     reqFont: "13px",
-    radius: "10px",
-    frame:
-      "0 4px 10px rgba(10, 24, 18, 0.5), inset 0 0 0 2px rgba(20, 14, 6, 0.55), inset 0 0 0 4px rgba(217, 180, 91, 0.75)",
+    radius: ["6px", null, "10px"],
+    border: "2px solid #b98a2f",
+    frame: ORNATE_FRAME,
     showRequirements: true,
   },
   mat: {
@@ -43,11 +50,23 @@ const SIZES = {
     req: "0px",
     reqFont: "0px",
     radius: "6px",
+    border: "1px solid #b98a2f",
     frame:
       "0 2px 4px rgba(10, 24, 18, 0.45), inset 0 0 0 1px rgba(217, 180, 91, 0.8)",
     showRequirements: false,
   },
-} as const;
+};
+
+/**
+ * Requirement markers are 0.8× as wide as they are tall. Sizes can be
+ * responsive arrays, which cannot be interpolated into a single calc() string.
+ */
+const scaleReqWidth = (
+  req: string | Array<string | null>
+): string | Array<string | null> =>
+  Array.isArray(req)
+    ? req.map((value) => (value === null ? null : `calc(${value} * 0.8)`))
+    : `calc(${req} * 0.8)`;
 
 /**
  * A square noble tile like the physical punch-board piece: parchment frame,
@@ -64,6 +83,7 @@ export const NobleTile = ({ noble, size = "board", onClick }: NobleTileProps) =>
       borderRadius={dims.radius}
       overflow="hidden"
       position="relative"
+      sx={{ containerType: "inline-size" }}
       // Inline style: Chakra's backgroundImage transform corrupts long
       // data-URI url() values, and the portrait is unique per noble anyway.
       style={{ backgroundImage: getNobleArtworkDataUri(noble) }}
@@ -71,7 +91,7 @@ export const NobleTile = ({ noble, size = "board", onClick }: NobleTileProps) =>
       backgroundPosition="center"
       // Ornate gold double frame — deliberately unlike the parchment-banded
       // development cards, so nobles read as portrait tiles at a glance.
-      border={size === "mat" ? "1px solid #b98a2f" : "2px solid #b98a2f"}
+      border={dims.border}
       boxShadow={dims.frame}
       flexShrink={0}
       cursor={onClick ? "pointer" : "default"}
@@ -118,7 +138,7 @@ export const NobleTile = ({ noble, size = "board", onClick }: NobleTileProps) =>
                   key={gem}
                   // Mini card-shaped rect (taller than wide), like the physical
                   // tile's requirement markers.
-                  w={`calc(${dims.req} * 0.8)`}
+                  w={scaleReqWidth(dims.req)}
                   h={dims.req}
                   borderRadius="3px"
                   align="center"

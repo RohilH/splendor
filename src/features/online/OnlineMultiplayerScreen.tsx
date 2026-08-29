@@ -2,6 +2,7 @@ import {
   Alert,
   AlertDescription,
   AlertIcon,
+  Box,
   Button,
   HStack,
   Heading,
@@ -41,16 +42,30 @@ export const OnlineMultiplayerScreen = ({ onBack }: { onBack: () => void }) => {
 
   if (!user) {
     return (
-      <AuthScreen
-        onBack={onBack}
-        error={error}
-        onClaimName={claimName}
+      <Box p={4}>
+        <AuthScreen
+          onBack={onBack}
+          error={error}
+          onClaimName={claimName}
+        />
+      </Box>
+    );
+  }
+
+  if (room?.started && gameState) {
+    return (
+      <OnlineGameScreen
+        userId={user.id}
+        gameState={gameState}
+        sendGameAction={sendGameAction}
+        onLeaveGame={leaveRoom}
       />
     );
   }
 
   return (
-    <VStack align="stretch" spacing={4}>
+    <Box p={4}>
+      <VStack align="stretch" spacing={4}>
       <HStack justify="space-between">
         <VStack align="start" spacing={0}>
           <Heading size="md" color="parchment.100" textShadow="0 1px 4px rgba(0,0,0,0.5)">Online Multiplayer</Heading>
@@ -102,15 +117,7 @@ export const OnlineMultiplayerScreen = ({ onBack }: { onBack: () => void }) => {
           onStartGame={startGame}
         />
       )}
-
-      {room?.started && gameState && (
-        <OnlineGameScreen
-          userId={user.id}
-          gameState={gameState}
-          sendGameAction={sendGameAction}
-          onLeaveGame={leaveRoom}
-        />
-      )}
-    </VStack>
+      </VStack>
+    </Box>
   );
 };

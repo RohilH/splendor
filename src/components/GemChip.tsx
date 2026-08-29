@@ -23,7 +23,7 @@ export const GemChip = ({
   isSelected = false,
   isDisabled = false,
   onClick,
-  size = "clamp(44px, 4.4vw, 62px)",
+  size = "clamp(32px, 8vw, 62px)",
 }: GemChipProps) => {
   const palette = gemChipColors[gem];
   const isGold = gem === "gold";
@@ -42,7 +42,8 @@ export const GemChip = ({
         align="center"
         justify="center"
         bg={`radial-gradient(circle at 35% 30%, #fffdf6 0%, ${palette.fill} 55%, ${palette.fill} 100%)`}
-        border="5px solid"
+        borderWidth={["3px", null, "5px"]}
+        borderStyle="solid"
         borderColor={palette.ring}
         outline={isGold ? `2px solid ${palette.ring}` : undefined}
         outlineOffset={isGold ? "2px" : undefined}

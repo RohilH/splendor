@@ -99,97 +99,141 @@ export const GameBoardView = ({
 }: GameBoardViewProps) => {
   return (
     <>
-      <Box p={[2, null, 4]} pb={[48, null, "158px"]} minH="100vh" overflowX="hidden">
-        {infoAlert}
-
-        <Grid
-          templateColumns={["1fr", null, "minmax(190px, 250px) 1fr minmax(120px, 160px)"]}
-          gap={[3, null, 5]}
+      <Box
+        display="flex"
+        flexDirection="column"
+        h={["100dvh", null, "auto"]}
+        minH="100vh"
+        overflow={["hidden", null, "visible"]}
+      >
+        <Box
+          flex={["1", null, "none"]}
+          minH={0}
+          overflow={["hidden", null, "visible"]}
+          p={[1.5, null, 4]}
+          pb={[2, null, "158px"]}
         >
-          {/* Player mats */}
-          <Box overflowX={["auto", null, "visible"]}>
-            <Flex
-              direction={["row", null, "column"]}
-              gap={[3, null, 4]}
-              align={["flex-start", null, "stretch"]}
-              minW={["max-content", null, "auto"]}
-            >
-              {players.map((player, index) => (
-                <PlayerArea
-                  key={player.id}
-                  player={
-                    playerNameFormatter
-                      ? { ...player, name: playerNameFormatter(player) }
-                      : player
-                  }
-                  isActive={index === currentPlayer}
-                  isCpu={isCpuPlayer?.(index) ?? false}
-                  calculatePoints={calculatePoints}
-                />
-              ))}
-            </Flex>
-          </Box>
+          {infoAlert}
 
-          {/* Center table: nobles row above the three card rows, decks at left */}
-          <VStack gap={[3, null, 4]} align="stretch" order={[1, null, 0]}>
-            <NobleArea nobles={nobles} />
-
-            {cardLevels.map((level) => {
-              const key = `level${level}` as keyof typeof visibleCards;
-              return (
-                <Flex key={level} gap={[1.5, null, 3]} align="flex-start">
-                  {deckCounts && (
-                    <Box display={["none", null, "block"]}>
-                      <DevelopmentDeck
-                        level={level}
-                        remainingCards={deckCounts[key]}
-                        showCount={showDeckCounts}
-                      />
-                    </Box>
-                  )}
-                  <CardField
-                    level={level}
-                    cards={visibleCards[key]}
-                    canAfford={canAfford}
-                    canReserveCard={canReserveCard}
-                    onPurchase={(card, cardIndex) =>
-                      onPurchaseCard(card, cardIndex, level)
+          <Grid
+            h={["100%", null, "auto"]}
+            minH={0}
+            templateAreas={[
+              `"players" "board" "bank"`,
+              null,
+              `"players board bank"`,
+            ]}
+            templateColumns={[
+              "minmax(0, 1fr)",
+              null,
+              "minmax(190px, 250px) 1fr minmax(120px, 160px)",
+            ]}
+            templateRows={["auto minmax(0, 1fr) auto", null, "auto"]}
+            gap={[1.5, null, 5]}
+          >
+            {/* Player mats */}
+            <Box gridArea="players" overflowX={["auto", null, "visible"]} minW={0}>
+              <Flex
+                direction={["row", null, "column"]}
+                gap={[2, null, 4]}
+                align={["flex-start", null, "stretch"]}
+                minW={["max-content", null, "auto"]}
+              >
+                {players.map((player, index) => (
+                  <PlayerArea
+                    key={player.id}
+                    player={
+                      playerNameFormatter
+                        ? { ...player, name: playerNameFormatter(player) }
+                        : player
                     }
-                    onReserve={(card, cardIndex) =>
-                      onReserveCard(card, cardIndex, level)
-                    }
+                    isActive={index === currentPlayer}
+                    isCpu={isCpuPlayer?.(index) ?? false}
+                    calculatePoints={calculatePoints}
                   />
-                </Flex>
-              );
-            })}
-          </VStack>
+                ))}
+              </Flex>
+            </Box>
 
-          {/* Chip bank */}
-          <VStack gap={[3, null, 4]} align="stretch">
-            <GemBank
-              gems={gems}
-              player={activePlayer}
-              selectedGems={selectedGems}
-              addGem={onSelectGem}
-              isInteractive={isGemBankInteractive}
-            />
-          </VStack>
-        </Grid>
+            {/* Center table: nobles row above the three card rows, decks at left */}
+            <VStack
+              gridArea="board"
+              gap={[1, null, 4]}
+              align="stretch"
+              justify="flex-start"
+              h={["100%", null, "auto"]}
+              minH={0}
+              minW={0}
+              w="100%"
+              overflowY={["auto", null, "visible"]}
+              sx={{ containerType: ["size", null, "normal"] }}
+            >
+              <NobleArea nobles={nobles} />
+
+              {cardLevels.map((level) => {
+                const key = `level${level}` as keyof typeof visibleCards;
+                return (
+                  <Flex
+                    key={level}
+                    gap={[1, null, 3]}
+                    align={["stretch", null, "flex-start"]}
+                    flex="none"
+                    minH={0}
+                    minW={0}
+                  >
+                    {deckCounts && (
+                      <Box display={["none", null, "block"]}>
+                        <DevelopmentDeck
+                          level={level}
+                          remainingCards={deckCounts[key]}
+                          showCount={showDeckCounts}
+                        />
+                      </Box>
+                    )}
+                    <CardField
+                      level={level}
+                      cards={visibleCards[key]}
+                      canAfford={canAfford}
+                      canReserveCard={canReserveCard}
+                      onPurchase={(card, cardIndex) =>
+                        onPurchaseCard(card, cardIndex, level)
+                      }
+                      onReserve={(card, cardIndex) =>
+                        onReserveCard(card, cardIndex, level)
+                      }
+                    />
+                  </Flex>
+                );
+              })}
+            </VStack>
+
+            {/* Chip bank */}
+            <Box gridArea="bank" minW={0}>
+              <GemBank
+                gems={gems}
+                player={activePlayer}
+                selectedGems={selectedGems}
+                addGem={onSelectGem}
+                isInteractive={isGemBankInteractive}
+              />
+            </Box>
+          </Grid>
+        </Box>
+
+        <ActivePlayerArea
+          activePlayer={activePlayer}
+          selectedGems={selectedGems}
+          onRemoveSelectedGem={onRemoveSelectedGem}
+          onTakeSelectedGems={onTakeSelectedGems}
+          onEndTurn={onEndTurn}
+          onPurchaseReservedCard={onPurchaseReservedCard}
+          canAffordReservedCard={canAffordReservedCard}
+          isGameOver={isGameOver}
+          title={title}
+          primaryActionLabel={primaryActionLabel}
+          isInteractionDisabled={isInteractionDisabled}
+        />
       </Box>
-
-      <ActivePlayerArea
-        activePlayer={activePlayer}
-        selectedGems={selectedGems}
-        onRemoveSelectedGem={onRemoveSelectedGem}
-        onTakeSelectedGems={onTakeSelectedGems}
-        onEndTurn={onEndTurn}
-        onPurchaseReservedCard={onPurchaseReservedCard}
-        canAffordReservedCard={canAffordReservedCard}
-        isGameOver={isGameOver}
-        title={title}
-        primaryActionLabel={primaryActionLabel}
-        isInteractionDisabled={isInteractionDisabled}
-      />
 
       <NobleSelectionModal
         isOpen={showNobleSelection}

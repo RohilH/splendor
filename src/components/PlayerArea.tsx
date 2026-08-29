@@ -42,7 +42,7 @@ export const PlayerArea = ({
   if (isMobile) {
     return (
       <Box
-        p={2}
+        p={1.5}
         bg="linear-gradient(160deg, #f9f4e8 0%, #f2e9d4 60%, #eadfc6 100%)"
         borderRadius="lg"
         borderWidth={2}
@@ -53,9 +53,9 @@ export const PlayerArea = ({
             : "0 4px 10px rgba(6, 22, 15, 0.4)"
         }
         flexShrink={0}
-        minW="150px"
+        minW="132px"
       >
-        <VStack align="stretch" spacing={1.5}>
+        <VStack align="stretch" spacing={1}>
           <HStack
             bg="rgba(217, 180, 91, 0.28)"
             border="1px solid rgba(163, 127, 46, 0.35)"
