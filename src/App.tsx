@@ -112,7 +112,7 @@ function App() {
 
   if (mode === "online") {
     return (
-      <Box minH="100vh" p={4}>
+      <Box minH="100vh">
         <OnlineMultiplayerScreen onBack={() => setMode("menu")} />
       </Box>
     );

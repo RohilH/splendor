@@ -120,30 +120,31 @@ export const GemBank = ({
   return (
     <Box
       w="100%"
-      p={[3, null, 4]}
-      borderRadius="14px"
+      p={[1.5, null, 4]}
+      borderRadius={["10px", null, "14px"]}
       bg="rgba(6, 22, 15, 0.45)"
       border="1px solid rgba(217, 180, 91, 0.28)"
       boxShadow="inset 0 2px 10px rgba(0, 0, 0, 0.45)"
     >
       <Text
         fontFamily="Georgia, 'Times New Roman', serif"
-        fontSize="sm"
+        fontSize={["2xs", null, "sm"]}
         fontWeight="bold"
         letterSpacing="0.14em"
         textTransform="uppercase"
         color="tableGold.300"
         textAlign="center"
-        mb={3}
+        mb={[1, null, 3]}
+        display={["none", null, "block"]}
       >
         Bank
       </Text>
       <Flex
         direction={["row", null, "column"]}
-        wrap={["wrap", null, "nowrap"]}
+        wrap="nowrap"
         justify="center"
         align="center"
-        gap={[3, null, 4]}
+        gap={[2, null, 4]}
       >
         {(Object.entries(gems) as [GemType, number][]).map(([gem, count]) => {
           const availableGems = count - (selectedGems[gem] || 0);

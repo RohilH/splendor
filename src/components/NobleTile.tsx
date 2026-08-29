@@ -12,10 +12,14 @@ interface NobleTileProps {
 
 const SIZES = {
   board: {
-    tile: "clamp(84px, min(8vw, 12.2vh), 110px)",
-    points: "clamp(18px, 1.9vw, 26px)",
-    req: "clamp(15px, 1.5vw, 20px)",
-    reqFont: "clamp(9px, 0.9vw, 12px)",
+    tile: [
+      "clamp(44px, 14vw, 64px)",
+      null,
+      "clamp(84px, min(8vw, 12.2vh), 110px)",
+    ],
+    points: ["clamp(11px, 22cqw, 18px)", null, "clamp(18px, 1.9vw, 26px)"],
+    req: ["clamp(9px, 16cqw, 14px)", null, "clamp(15px, 1.5vw, 20px)"],
+    reqFont: ["clamp(7px, 12cqw, 10px)", null, "clamp(9px, 0.9vw, 12px)"],
   },
   modal: {
     tile: "150px",
@@ -23,7 +27,7 @@ const SIZES = {
     req: "24px",
     reqFont: "13px",
   },
-} as const;
+};
 
 /**
  * A square noble tile like the physical punch-board piece: parchment frame,
@@ -37,9 +41,10 @@ export const NobleTile = ({ noble, size = "board", onClick }: NobleTileProps) =>
     <Box
       w={dims.tile}
       h={dims.tile}
-      borderRadius="10px"
+      borderRadius={["6px", null, "10px"]}
       overflow="hidden"
       position="relative"
+      sx={{ containerType: "inline-size" }}
       // Inline style: Chakra's backgroundImage transform corrupts long
       // data-URI url() values, and the portrait is unique per noble anyway.
       style={{ backgroundImage: getNobleArtworkDataUri(noble) }}
