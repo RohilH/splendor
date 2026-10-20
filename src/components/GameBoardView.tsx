@@ -12,6 +12,7 @@ import { ActivePlayerArea } from "./ActivePlayerArea";
 import { NobleSelectionModal } from "./NobleSelectionModal";
 import { VictoryScreen } from "./VictoryScreen";
 import { DevelopmentDeck } from "./DevelopmentDeck";
+import { hasPendingGemSelection } from "../store/tempGemStore";
 
 const cardLevels: Array<1 | 2 | 3> = [3, 2, 1];
 
@@ -97,6 +98,8 @@ export const GameBoardView = ({
   isCpuPlayer,
   showDeckCounts = true,
 }: GameBoardViewProps) => {
+  const gemSelectionLocksCards = hasPendingGemSelection(selectedGems);
+
   return (
     <>
       <Box
@@ -195,6 +198,7 @@ export const GameBoardView = ({
                       cards={visibleCards[key]}
                       canAfford={canAfford}
                       canReserveCard={canReserveCard}
+                      actionsLocked={gemSelectionLocksCards}
                       onPurchase={(card, cardIndex) =>
                         onPurchaseCard(card, cardIndex, level)
                       }
@@ -228,6 +232,7 @@ export const GameBoardView = ({
           onEndTurn={onEndTurn}
           onPurchaseReservedCard={onPurchaseReservedCard}
           canAffordReservedCard={canAffordReservedCard}
+          actionsLocked={gemSelectionLocksCards}
           isGameOver={isGameOver}
           title={title}
           primaryActionLabel={primaryActionLabel}

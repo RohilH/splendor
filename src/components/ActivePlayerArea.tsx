@@ -18,6 +18,7 @@ interface CardSummaryProps {
   onClick?: () => void;
   canAfford: boolean;
   isDisabled?: boolean;
+  actionLocked?: boolean;
 }
 
 const CardSummary = ({
@@ -25,7 +26,9 @@ const CardSummary = ({
   onClick,
   canAfford,
   isDisabled = false,
+  actionLocked = false,
 }: CardSummaryProps) => {
+  const purchaseDisabled = isDisabled || actionLocked || !canAfford;
   return (
     <Box position="relative">
       <Tooltip
@@ -61,8 +64,8 @@ const CardSummary = ({
           alignItems="center"
           justifyContent="center"
           position="relative"
-          cursor={onClick && canAfford && !isDisabled ? "pointer" : "default"}
-          onClick={onClick && canAfford && !isDisabled ? onClick : undefined}
+          cursor={onClick && !purchaseDisabled ? "pointer" : "default"}
+          onClick={onClick && !purchaseDisabled ? onClick : undefined}
           border="1px solid"
           borderColor={card.gem === "diamond" ? "gray.300" : "transparent"}
           opacity={isDisabled ? 0.7 : 1}
@@ -98,11 +101,20 @@ const CardSummary = ({
             >
               <Button
                 size="xs"
-                colorScheme={canAfford ? "blue" : "gray"}
-                isDisabled={!canAfford || isDisabled}
-                onClick={onClick}
+                colorScheme={canAfford && !actionLocked ? "blue" : "gray"}
+                isDisabled={purchaseDisabled}
+                title={
+                  actionLocked
+                    ? "Deselect gems before buying a reserved card"
+                    : undefined
+                }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (purchaseDisabled || !onClick) return;
+                  onClick();
+                }}
               >
-                {canAfford ? "Buy" : "Can't Buy"}
+                {actionLocked ? "Gems" : canAfford ? "Buy" : "Can't Buy"}
               </Button>
             </Box>
           )}
@@ -120,6 +132,8 @@ interface ActivePlayerAreaProps {
   onEndTurn: () => void;
   onPurchaseReservedCard: (cardIndex: number) => void;
   canAffordReservedCard: (card: Card) => boolean;
+  /** Staged gems already use this turn, so reserved cards cannot be bought yet. */
+  actionsLocked?: boolean;
   isGameOver: boolean;
   title: string;
   primaryActionLabel: string;
@@ -134,6 +148,7 @@ export const ActivePlayerArea = ({
   onEndTurn,
   onPurchaseReservedCard,
   canAffordReservedCard,
+  actionsLocked = false,
   isGameOver,
   title,
   primaryActionLabel,
@@ -162,7 +177,7 @@ export const ActivePlayerArea = ({
   };
 
   const handleReservedCardClick = (index: number) => {
-    if (resolvedInteractionDisabled) return;
+    if (resolvedInteractionDisabled || actionsLocked) return;
     onPurchaseReservedCard(index);
   };
 
@@ -200,6 +215,7 @@ export const ActivePlayerArea = ({
                     onClick={() => handleReservedCardClick(index)}
                     canAfford={canAffordReservedCard(card)}
                     isDisabled={resolvedInteractionDisabled}
+                    actionLocked={actionsLocked}
                   />
                 ))}
             </HStack>
@@ -305,6 +321,11 @@ export const ActivePlayerArea = ({
             </Box>
           </HStack>
 
+          {actionsLocked && (
+            <Text fontSize="2xs" color="tableGold.300" lineHeight="1.2">
+              Deselect gems to buy or reserve.
+            </Text>
+          )}
           <Button
             colorScheme="yellow"
             bg="tableGold.400"
@@ -454,6 +475,7 @@ export const ActivePlayerArea = ({
                       onClick={() => handleReservedCardClick(index)}
                       canAfford={canAffordReservedCard(card)}
                       isDisabled={resolvedInteractionDisabled}
+                      actionLocked={actionsLocked}
                     />
                   ))}
                   {activePlayer.reservedCards.length === 0 && (
@@ -465,17 +487,24 @@ export const ActivePlayerArea = ({
           </HStack>
         </VStack>
 
-        <Button
-          colorScheme="yellow"
-          bg="tableGold.400"
-          color="ink.900"
-          _hover={{ bg: "tableGold.300" }}
-          size="lg"
-          onClick={handleEndTurn}
-          isDisabled={resolvedInteractionDisabled}
-        >
-          {primaryActionLabel}
-        </Button>
+        <VStack spacing={2} align="stretch">
+          {actionsLocked && (
+            <Text fontSize="xs" color="tableGold.300" textAlign="right">
+              Deselect gems to buy or reserve.
+            </Text>
+          )}
+          <Button
+            colorScheme="yellow"
+            bg="tableGold.400"
+            color="ink.900"
+            _hover={{ bg: "tableGold.300" }}
+            size="lg"
+            onClick={handleEndTurn}
+            isDisabled={resolvedInteractionDisabled}
+          >
+            {primaryActionLabel}
+          </Button>
+        </VStack>
       </HStack>
     </Box>
   );

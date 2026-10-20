@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyGameAction, createInitialGameState } from "../engine";
 import type { GameServerState } from "../engine";
-import type { Card, Noble, GemType, Gems } from "../../../shared/types/game";
+import type { Card, Noble, GemType } from "../../../shared/types/game";
 
 const createPlayers = () => [
   { userId: "u1", name: "Alice" },
@@ -642,6 +642,40 @@ describe("purchase reserved card parity rules", () => {
     });
     expect(result.error).toBeUndefined();
     expect(result.state.players[0].reservedCards).toHaveLength(0);
+  });
+
+  it("rejects buying a reserved card after gems were taken in the same turn", () => {
+    let state = createInitialGameState(createPlayers());
+    const reserved = applyGameAction(state, "u1", {
+      type: "reserve_card",
+      level: 1,
+      cardIndex: 0,
+    });
+    expect(reserved.error).toBeUndefined();
+    state = applyGameAction(reserved.state, "u2", { type: "end_turn" }).state;
+
+    const card = state.players[0].reservedCards[0];
+    state = withPlayerGems(state, 0, card.cost);
+    const gemsBeforeTake = { ...state.players[0].gems };
+
+    const taken = applyGameAction(state, "u1", {
+      type: "take_gems",
+      gems: { emerald: 1 },
+    });
+    expect(taken.error).toBeUndefined();
+    expect(taken.state.currentPlayer).toBe(1);
+
+    const bought = applyGameAction(taken.state, "u1", {
+      type: "purchase_reserved_card",
+      cardIndex: 0,
+    });
+
+    expect(bought.error).toBe("It is not your turn.");
+    expect(bought.state.players[0].reservedCards).toEqual([card]);
+    expect(bought.state.players[0].purchasedCards).toHaveLength(0);
+    expect(bought.state.players[0].gems.emerald).toBe(
+      (gemsBeforeTake.emerald || 0) + 1,
+    );
   });
 
   it("returns error for invalid reserved card index", () => {

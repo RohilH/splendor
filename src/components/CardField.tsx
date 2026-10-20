@@ -9,6 +9,8 @@ interface CardFieldProps {
   cards: Card[];
   canAfford: (card: Card) => boolean;
   canReserveCard: boolean;
+  /** Gem selection is already this turn's action, so buying and reserving are closed. */
+  actionsLocked?: boolean;
   onPurchase: (card: Card, cardIndex: number) => void;
   onReserve: (card: Card, cardIndex: number) => void;
 }
@@ -17,6 +19,7 @@ export const CardField = ({
   cards,
   canAfford,
   canReserveCard,
+  actionsLocked = false,
   onPurchase,
   onReserve,
 }: CardFieldProps) => {
@@ -79,10 +82,22 @@ export const CardField = ({
                   bg="tableGold.400"
                   color="ink.900"
                   _hover={{ bg: "tableGold.300" }}
-                  isDisabled={!canAfford(card)}
-                  onClick={() => onPurchase(card, index)}
+                  isDisabled={actionsLocked || !canAfford(card)}
+                  title={
+                    actionsLocked
+                      ? "Deselect gems before buying a card"
+                      : undefined
+                  }
+                  onClick={() => {
+                    if (actionsLocked) return;
+                    onPurchase(card, index);
+                  }}
                 >
-                  {canAfford(card) ? "Purchase" : "Can't Afford"}
+                  {actionsLocked
+                    ? "Gems selected"
+                    : canAfford(card)
+                      ? "Purchase"
+                      : "Can't Afford"}
                 </Button>
                 <Button
                   size={["xs", null, "sm"]}
@@ -91,10 +106,22 @@ export const CardField = ({
                   color="parchment.100"
                   borderColor="parchment.300"
                   _hover={{ bg: "whiteAlpha.200" }}
-                  isDisabled={!canReserveCard}
-                  onClick={() => onReserve(card, index)}
+                  isDisabled={actionsLocked || !canReserveCard}
+                  title={
+                    actionsLocked
+                      ? "Deselect gems before reserving a card"
+                      : undefined
+                  }
+                  onClick={() => {
+                    if (actionsLocked) return;
+                    onReserve(card, index);
+                  }}
                 >
-                  {canReserveCard ? "Reserve" : "Reserve Full"}
+                  {actionsLocked
+                    ? "Gems selected"
+                    : canReserveCard
+                      ? "Reserve"
+                      : "Reserve Full"}
                 </Button>
               </VStack>
             </Box>
