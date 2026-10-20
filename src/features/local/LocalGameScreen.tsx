@@ -3,7 +3,10 @@ import { canAffordCard } from "../../../shared/game/selectors";
 import type { GemType, Noble } from "../../types/game";
 import { GameBoardView } from "../../components/GameBoardView";
 import { useGameStore, localUserId } from "../../store/gameStore";
-import { createEmptyGemSelection } from "../../store/tempGemStore";
+import {
+  createEmptyGemSelection,
+  hasPendingGemSelection,
+} from "../../store/tempGemStore";
 
 interface LocalGameScreenProps {
   onRestart: () => void;
@@ -81,7 +84,7 @@ export const LocalGameScreen = ({ onRestart }: LocalGameScreenProps) => {
   if (!gameState) return null;
 
   const activePlayer = gameState.players[gameState.currentPlayer];
-  const hasSelectedGems = Object.values(selectedGems).some((c) => c > 0);
+  const hasSelectedGems = hasPendingGemSelection(selectedGems);
   const currentPlayerIsCpu = isCpuPlayer(gameState.currentPlayer);
   const interactionDisabled = gameState.isGameOver || gameState.showNobleSelection || currentPlayerIsCpu || isCpuThinking;
 
@@ -126,7 +129,7 @@ export const LocalGameScreen = ({ onRestart }: LocalGameScreenProps) => {
     cardIndex: number,
     level: 1 | 2 | 3,
   ) => {
-    if (interactionDisabled) return;
+    if (interactionDisabled || hasSelectedGems) return;
     const error = dispatch({ type: "purchase_card", level, cardIndex });
     if (!error) advanceTurn();
   };
@@ -136,13 +139,13 @@ export const LocalGameScreen = ({ onRestart }: LocalGameScreenProps) => {
     cardIndex: number,
     level: 1 | 2 | 3,
   ) => {
-    if (interactionDisabled) return;
+    if (interactionDisabled || hasSelectedGems) return;
     const error = dispatch({ type: "reserve_card", level, cardIndex });
     if (!error) advanceTurn();
   };
 
   const handlePurchaseReservedCard = (cardIndex: number) => {
-    if (interactionDisabled) return;
+    if (interactionDisabled || hasSelectedGems) return;
     const error = dispatch({ type: "purchase_reserved_card", cardIndex });
     if (!error) advanceTurn();
   };

@@ -10,7 +10,10 @@ import type {
   OnlineGameAction,
 } from "../../../shared/onlineTypes";
 import { GameBoardView } from "../../components/GameBoardView";
-import { createEmptyGemSelection } from "../../store/tempGemStore";
+import {
+  createEmptyGemSelection,
+  hasPendingGemSelection,
+} from "../../store/tempGemStore";
 
 interface OnlineGameScreenProps {
   userId: string;
@@ -43,9 +46,7 @@ export const OnlineGameScreen = ({
       gameState.pendingNobleSelectionPlayerId === userId
   );
   const currentPlayer = gameState.players[gameState.currentPlayer] ?? null;
-  const hasSelectedGems = Object.values(selectedGems).some(
-    (count) => count > 0
-  );
+  const hasSelectedGems = hasPendingGemSelection(selectedGems);
 
   useEffect(() => {
     setSelectedGems(createEmptyGemSelection());
@@ -110,15 +111,18 @@ export const OnlineGameScreen = ({
           !gameState.showNobleSelection &&
           myPlayer.reservedCards.length < 3
       )}
-      onPurchaseCard={(_card, cardIndex, level) =>
-        sendGameAction({ type: "purchase_card", level, cardIndex })
-      }
-      onReserveCard={(_card, cardIndex, level) =>
-        sendGameAction({ type: "reserve_card", level, cardIndex })
-      }
-      onPurchaseReservedCard={(cardIndex) =>
-        sendGameAction({ type: "purchase_reserved_card", cardIndex })
-      }
+      onPurchaseCard={(_card, cardIndex, level) => {
+        if (!isMyTurn || hasSelectedGems) return;
+        sendGameAction({ type: "purchase_card", level, cardIndex });
+      }}
+      onReserveCard={(_card, cardIndex, level) => {
+        if (!isMyTurn || hasSelectedGems) return;
+        sendGameAction({ type: "reserve_card", level, cardIndex });
+      }}
+      onPurchaseReservedCard={(cardIndex) => {
+        if (!isMyTurn || hasSelectedGems) return;
+        sendGameAction({ type: "purchase_reserved_card", cardIndex });
+      }}
       canAffordReservedCard={(card) =>
         Boolean(myPlayer && isMyTurn && canAffordCard(myPlayer, card))
       }
