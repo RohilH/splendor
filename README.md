@@ -127,92 +127,68 @@ Frontend variables:
 
 If the frontend variables are unset, local development continues to use same-origin `/api` and `/ws` through the Vite proxy.
 
-## Recommended Production Setup
+## Recommended Production Setup: Single Service
 
-Use:
+Deploy the whole game (frontend + multiplayer backend) as one service on a host that supports long-lived Node processes, such as Railway, Render, or Fly.io.
 
-- `Vercel` for the frontend
-- `Railway` for the backend
+The `Dockerfile` builds the frontend into `dist/` and the server serves it alongside the API and websocket endpoint on the same origin, so no `VITE_API_BASE_URL`, `VITE_WS_BASE_URL`, or CORS configuration is needed.
 
-This repo now supports that split deployment model directly.
-
-### Why Railway
-
-The backend uses:
+The backend cannot run on Vercel serverless because it uses:
 
 - a long-lived Node server
 - raw WebSocket upgrades
 - in-memory multiplayer room state
 - file-backed player-name persistence
 
-That architecture works well on Railway, Render, or Fly.io, but not as a Vercel serverless backend.
-
-## Railway Backend Deployment
-
-### What the repo provides
-
-- `Dockerfile` for a production backend container
-- `railway.json` with a healthcheck path
-- `npm run start:server` for a production-style backend start
-- `tsconfig.server.json` for backend compilation and typechecking
-
-### What you need to do manually
+### Railway deployment steps
 
 1. Create or log into a Railway account.
 2. Create a new Railway project and connect it to this repository.
-3. Add a volume to the backend service.
+3. Add a volume to the service mounted at `/data`.
 4. Set Railway environment variables:
 
 ```text
 JWT_SECRET=<strong-random-secret>
 USER_STORE_FILE=/data/users.json
-ALLOWED_ORIGINS=https://splendor.rohil.org
 REQUEST_LOGGING_ENABLED=true
 ```
 
-Add any optional timing overrides only if you need them.
+Add any optional timing overrides only if you need them. `ALLOWED_ORIGINS` is unnecessary in the single-service setup because the frontend and backend share an origin.
 
-5. Deploy the service and confirm the backend healthcheck works:
+5. Deploy the service and confirm the healthcheck works:
 
 ```text
 https://<your-railway-domain>/api/health
 ```
 
-6. Optionally add a custom backend domain such as `api.splendor.rohil.org`.
-7. If you use a custom domain, add the required DNS record in your DNS provider.
+6. Point your game domain (e.g. `splendor.rohil.org`) at the Railway service as a custom domain, and add the required DNS record in your DNS provider.
 
 ### Persistence note
 
 User accounts are currently stored in a JSON file by `server/auth/userStore.ts`. Use a Railway volume so that registrations survive restarts and redeploys. Because room state is still in memory, keep the backend as a single running instance for now.
 
-## Vercel Frontend Deployment
+## Alternative: Split Frontend/Backend Deployment
 
-After the Railway backend is live, set these Vercel environment variables for the frontend project:
+You can still host the frontend separately (e.g. on Vercel) with the backend on Railway. In that case, set these frontend build-time environment variables and redeploy the frontend whenever the backend URL changes:
 
 ```text
 VITE_API_BASE_URL=https://<your-railway-backend-domain>
 VITE_WS_BASE_URL=wss://<your-railway-backend-domain>/ws
 ```
 
-Then redeploy the frontend.
+Also set `ALLOWED_ORIGINS=<your-frontend-origin>` on the backend so CORS and websocket origin checks pass.
 
-If you use a custom backend domain like `api.splendor.rohil.org`, the values become:
-
-```text
-VITE_API_BASE_URL=https://api.splendor.rohil.org
-VITE_WS_BASE_URL=wss://api.splendor.rohil.org/ws
-```
+Note that if the backend is ever deleted or its domain changes, the deployed frontend keeps pointing at the dead URL until it is rebuilt, and users see connection errors. The single-service setup avoids this failure mode.
 
 ## Production Verification Checklist
 
-After Railway and Vercel are configured:
+After deploying:
 
-1. Open the live frontend at `https://splendor.rohil.org/`.
-2. Confirm browser logs show auth and websocket connection attempts.
-3. Confirm `https://<backend-domain>/api/health` returns JSON.
-4. Register a new user from the live site.
-5. Log in with that user from the live site.
-6. Open a second browser session, create and join a room, and verify websocket updates flow between both clients.
+1. Open the live frontend.
+2. Confirm `https://<your-domain>/api/health` returns JSON.
+3. Confirm browser logs show auth and websocket connection attempts.
+4. Claim a player name from the live site.
+5. Open a second browser session, create and join a room, and verify websocket updates flow between both clients.
 
 ## Current Limitations
 

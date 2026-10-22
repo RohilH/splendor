@@ -67,13 +67,23 @@ export const postJson = async <T>(
   body: Record<string, unknown>
 ): Promise<T> => {
   const requestUrl = getApiUrl(path);
-  const response = await fetch(requestUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(requestUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (error) {
+    // Browsers surface network-level failures (server down, DNS, CORS) as an
+    // opaque TypeError like "Load failed"; translate it into something actionable.
+    console.warn(`[http] request to ${requestUrl} failed`, error);
+    throw new Error(
+      `Unable to reach the game server at ${requestUrl}. The multiplayer backend may be down or misconfigured.`
+    );
+  }
 
   return parseApiResponse<T>(response, requestUrl);
 };
